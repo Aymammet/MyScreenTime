@@ -13,11 +13,13 @@
 - [x] Created and pushed the initial commit.
 - [x] Created the initial `README.md`.
 - [x] Documented the product requirements and development roadmap in `plan.md`.
-- [ ] Select the application platform and technology stack.
-- [ ] Initialize the application framework.
-- [ ] Begin MVP implementation.
+- [x] Select the application platform and technology stack.
+- [x] Initialize the application framework.
+- [x] Begin MVP planning and document the primary user flow.
+- [x] Complete the Phase 1 project foundation.
+- [ ] Begin Phase 2 accounts and family setup.
 
-**Current stage:** Planning and technology selection
+**Current stage:** Phase 1 complete — ready for accounts and family setup
 
 ## 1. Product vision
 
@@ -145,7 +147,7 @@ The first usable release will support:
 - Configure notification preferences
 - Set time zone
 
-## 5. Business rules to define
+## 5. Business rules
 
 - End time must be later than start time unless overnight sessions are supported.
 - Duration is calculated by the application and is not entered directly.
@@ -156,7 +158,9 @@ The first usable release will support:
 - Archived devices retain their historical usage records.
 - All dates and notifications use the parent's configured time zone.
 - Weekday and weekend limits can be added after the basic daily-limit flow works.
-- Whether simultaneous use of multiple devices counts once or multiple times must be decided before advanced reporting.
+- A child cannot have overlapping usage sessions in the MVP, including sessions on different devices.
+- Daily limits apply to a child's combined usage across all devices in the MVP.
+- Detailed decisions are recorded in `docs/product-decisions.md`.
 
 ## 6. Notification rules
 
@@ -174,22 +178,22 @@ Notifications should not be repeatedly sent for the same threshold on the same d
 
 ### Phase 0 — Product decisions
 
-- [ ] Choose the first platform: responsive web app, native mobile app, or both.
-- [ ] Choose the technology stack.
-- [ ] Decide whether the first release is local-only or uses cloud accounts and synchronization.
-- [ ] Decide whether simultaneous device sessions count separately.
-- [ ] Decide whether daily limits are per child only or also per device.
-- [ ] Create basic wireframes and approve the primary user flow.
+- [x] Choose the first platform: responsive web application.
+- [x] Choose the technology stack.
+- [x] Use cloud accounts and synchronized cloud storage.
+- [x] Prevent overlapping sessions so screen-time minutes are not counted twice.
+- [x] Apply daily limits to each child's combined device usage in the MVP.
+- [x] Create basic wireframes and define the primary user flow.
 
 ### Phase 1 — Project foundation
 
-- [ ] Initialize the selected application framework.
-- [ ] Add formatting, linting, and test tooling.
-- [ ] Configure environment variables and provide an example environment file.
-- [ ] Establish the folder structure and coding conventions.
-- [ ] Create the database schema and migrations.
-- [ ] Add a continuous-integration workflow.
-- [ ] Document local setup and development commands in `README.md`.
+- [x] Initialize the selected application framework.
+- [x] Add formatting, linting, and test tooling.
+- [x] Configure environment variables and provide an example environment file.
+- [x] Establish the folder structure and coding conventions.
+- [x] Create the database schema and initial migration.
+- [x] Add a continuous-integration workflow.
+- [x] Document local setup and development commands in `README.md`.
 
 ### Phase 2 — Accounts and family setup
 
@@ -286,10 +290,11 @@ These are intentionally outside the initial MVP:
 
 ## 11. Immediate next steps
 
-- [ ] Confirm the initial platform and technology stack.
-- [ ] Agree on MVP boundaries and unresolved business rules.
-- [ ] Create low-fidelity wireframes for the dashboard, child details, usage entry, and analysis screens.
-- [ ] Initialize the application and complete Phase 1.
+- [x] Confirm the initial platform and technology stack.
+- [x] Agree on MVP boundaries and resolve initial business rules.
+- [x] Create low-fidelity wireframes for the dashboard, child details, usage entry, and analysis screens.
+- [x] Initialize the application and complete Phase 1.
+- [ ] Begin Phase 2 by implementing parent authentication.
 
 This document should be updated as requirements change and tasks are completed.
 

@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# Tests
+coverage/
+playwright-report/
+test-results/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Generated Prisma client artifacts
+src/generated/prisma/
+
+# Editors and operating systems
+.DS_Store
+*.swp
+
+# Logs
+*.log
+npm-debug.log*

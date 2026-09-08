@@ -1,0 +1,104 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum DeviceType {
+  PHONE
+  TABLET
+  PC
+  CHROMEBOOK
+  TV
+  GAME_CONSOLE
+  OTHER
+}
+
+enum NotificationType {
+  DAILY_LIMIT_NEAR
+  DAILY_LIMIT_REACHED
+  DAILY_LIMIT_EXCEEDED
+  MONTHLY_COMPARISON
+}
+
+model Parent {
+  id                   String         @id @default(cuid())
+  name                 String
+  email                String         @unique
+  passwordHash         String
+  timeZone             String         @default("UTC")
+  notificationsEnabled Boolean        @default(true)
+  children             Child[]
+  notifications        Notification[]
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+}
+
+model Child {
+  id                String         @id @default(cuid())
+  parentId          String
+  parent            Parent         @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  name              String
+  avatarColor       String?
+  dailyLimitMinutes Int
+  isActive          Boolean        @default(true)
+  devices           Device[]
+  usageSessions     UsageSession[]
+  notifications     Notification[]
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  @@index([parentId])
+}
+
+model Device {
+  id            String         @id @default(cuid())
+  childId       String
+  child         Child          @relation(fields: [childId], references: [id], onDelete: Cascade)
+  name          String
+  type          DeviceType
+  color         String?
+  isActive      Boolean        @default(true)
+  usageSessions UsageSession[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([childId])
+  @@unique([childId, name])
+}
+
+model UsageSession {
+  id              String   @id @default(cuid())
+  childId         String
+  child           Child    @relation(fields: [childId], references: [id], onDelete: Cascade)
+  deviceId        String
+  device          Device   @relation(fields: [deviceId], references: [id], onDelete: Restrict)
+  startedAt       DateTime
+  endedAt         DateTime
+  durationMinutes Int
+  note            String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([childId, startedAt])
+  @@index([deviceId, startedAt])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  parentId  String
+  parent    Parent           @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  childId   String?
+  child     Child?           @relation(fields: [childId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  message   String
+  eventKey  String           @unique
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  @@index([parentId, createdAt])
+  @@index([childId, createdAt])
+}
