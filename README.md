@@ -1,88 +1,66 @@
 # MyScreenTime
 
-MyScreenTime is a responsive web application that helps parents track and manage children's daily screen time across multiple devices.
+MyScreenTime is a native iOS application that helps parents track and manage children's daily screen time across phones, tablets, computers, Chromebooks, televisions, and game consoles.
 
 ## Technology
 
-- Next.js and React
-- TypeScript
-- Tailwind CSS
-- PostgreSQL and Prisma
-- Zod validation
-- Vitest, Testing Library, and Playwright
+- Swift 6
+- SwiftUI
+- Xcode 26
+- iOS 17 or newer
+- Swift Testing for unit tests
+- XCTest for UI tests
 
-Product decisions and MVP boundaries are documented in [docs/product-decisions.md](docs/product-decisions.md). Project progress is tracked in [plan.md](plan.md).
+SwiftData provides local persistence. Optional iCloud synchronization can be added after the local family-management flows are stable.
 
-## Local setup
+## Open and run in Xcode
 
-### Requirements
+1. Open `MyScreenTime.xcodeproj` in Xcode.
+2. Select the **MyScreenTime** scheme.
+3. Select an iPhone simulator, such as **iPhone 17 Pro**.
+4. Press **Run** (`⌘R`).
+5. Create the local parent profile shown on first launch.
 
-- Node.js 22 or newer
-- npm
-- PostgreSQL
+After setup, add a child and choose one limit for every day or separate weekday and weekend limits. The parent dashboard shows today's combined usage, remaining allowance, and limit status for every child. Tap a child to see the same daily summary plus today's subtotal for each device. Use **Record screen time** to choose a device, date, start time, and end time; totals refresh automatically after saving, editing, or deleting a session. The calculated minutes appear before saving, and overlapping sessions for the same child are blocked across all devices. Saved sessions appear under **Recent usage**: tap one to edit it or swipe left to delete it with confirmation. Tap a device to edit it, or swipe a child or device left to edit or archive it. Close and reopen the app to verify that SwiftData restores the family and usage history.
 
-### Installation
+No external packages, environment variables, or database are required.
 
-1. Install dependencies:
+## Run tests in Xcode
 
-   ```bash
-   npm install
-   ```
+Press **Test** (`⌘U`) to run:
 
-2. Copy the environment template and replace its placeholders:
+- Three unit tests for usage-duration calculations
+- Fourteen tests for family persistence, session lifecycle, overlap detection, daily aggregation, time zones, and weekday/weekend limits
+- One UI test covering setup, overlap rejection, usage editing, and confirmed deletion
 
-   ```bash
-   cp .env.example .env
-   ```
+## Command-line verification
 
-3. Generate the Prisma client and apply migrations:
-
-   ```bash
-   npm run db:generate
-   npx prisma migrate deploy
-   ```
-
-4. Start the development server:
-
-   ```bash
-   npm run dev
-   ```
-
-Open [http://localhost:3000](http://localhost:3000).
-
-## Development commands
-
-| Command               | Purpose                               |
-| --------------------- | ------------------------------------- |
-| `npm run dev`         | Start the development server          |
-| `npm run build`       | Create a production build             |
-| `npm run lint`        | Run ESLint                            |
-| `npm run format`      | Format project files                  |
-| `npm run typegen`     | Generate Next.js route types          |
-| `npm run typecheck`   | Check TypeScript types                |
-| `npm run test`        | Run unit and component tests          |
-| `npm run test:e2e`    | Run browser-based tests               |
-| `npm run db:generate` | Generate the Prisma client            |
-| `npm run db:validate` | Validate the Prisma schema            |
-| `npm run check`       | Run the main local verification suite |
-
-## Folder structure
-
-```text
-src/app/                Next.js routes and layouts
-src/components/         Reusable interface components
-src/features/           Feature-specific application code
-src/lib/                Shared utilities and infrastructure
-prisma/                 Database schema and migrations
-tests/e2e/              End-to-end tests
-docs/                   Product and design documentation
+```bash
+xcodebuild test \
+  -project MyScreenTime.xcodeproj \
+  -scheme MyScreenTime \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=latest' \
+  -derivedDataPath .build/DerivedData \
+  CODE_SIGNING_ALLOWED=NO
 ```
 
-## Coding conventions
+## Project structure
 
-- Use TypeScript strict mode and the `@/` import alias for `src/`.
-- Keep route files in `src/app` and reusable UI in `src/components`.
-- Keep domain-specific code grouped under `src/features`.
-- Validate external input with Zod at application boundaries.
-- Add tests for time calculations, authorization rules, and reporting logic.
-- Never commit `.env` files or secrets.
+```text
+MyScreenTime/App/          App entry point and SwiftUI screens
+MyScreenTime/Design/       Colors and reusable design values
+MyScreenTime/Models/       Child, device, and usage-session models
+MyScreenTime/Services/     Business calculations and app services
+MyScreenTime/Resources/    Asset catalogs and bundled resources
+MyScreenTimeTests/         Unit tests
+MyScreenTimeUITests/       Simulator UI tests
+docs/                      Product decisions and wireframes
+```
+
+## Development workflow
+
+- Implement one small feature at a time.
+- Build after each meaningful change with `⌘B`.
+- Run the app in the simulator with `⌘R`.
+- Run tests with `⌘U` before committing.
+- Update `plan.md` whenever a roadmap task is completed.

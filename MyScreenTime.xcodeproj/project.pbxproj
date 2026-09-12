@@ -1,0 +1,212 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A10000000000000000000001 /* MyScreenTimeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000001 /* MyScreenTimeApp.swift */; };
+		A10000000000000000000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000002 /* ContentView.swift */; };
+		A10000000000000000000003 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000003 /* AppTheme.swift */; };
+		A10000000000000000000004 /* ChildProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000004 /* ChildProfile.swift */; };
+		A10000000000000000000005 /* Device.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000005 /* Device.swift */; };
+		A10000000000000000000006 /* UsageSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000006 /* UsageSession.swift */; };
+		A10000000000000000000007 /* DurationCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000007 /* DurationCalculator.swift */; };
+		A10000000000000000000008 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000008 /* Assets.xcassets */; };
+		A10000000000000000000009 /* DurationCalculatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000009 /* DurationCalculatorTests.swift */; };
+		A1000000000000000000000A /* MyScreenTimeUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000A /* MyScreenTimeUITests.swift */; };
+		A1000000000000000000000B /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000E /* RootView.swift */; };
+		A1000000000000000000000C /* ParentSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000F /* ParentSetupView.swift */; };
+		A1000000000000000000000D /* ParentSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000010 /* ParentSettingsView.swift */; };
+		A1000000000000000000000E /* ParentProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000011 /* ParentProfile.swift */; };
+		A1000000000000000000000F /* ParentProfilePersistenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000012 /* ParentProfilePersistenceTests.swift */; };
+		A10000000000000000000010 /* ChildFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000013 /* ChildFormView.swift */; };
+		A10000000000000000000011 /* ChildDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000014 /* ChildDetailView.swift */; };
+		A10000000000000000000012 /* DeviceFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000015 /* DeviceFormView.swift */; };
+		A10000000000000000000013 /* UsageEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000016 /* UsageEntryView.swift */; };
+		A10000000000000000000014 /* UsageAggregator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000017 /* UsageAggregator.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		C10000000000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D10000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E10000000000000000000001;
+			remoteInfo = MyScreenTime;
+		};
+		C10000000000000000000002 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D10000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E10000000000000000000001;
+			remoteInfo = MyScreenTime;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		B10000000000000000000001 /* MyScreenTimeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyScreenTimeApp.swift; sourceTree = "<group>"; };
+		B10000000000000000000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		B10000000000000000000003 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
+		B10000000000000000000004 /* ChildProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChildProfile.swift; sourceTree = "<group>"; };
+		B10000000000000000000005 /* Device.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Device.swift; sourceTree = "<group>"; };
+		B10000000000000000000006 /* UsageSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageSession.swift; sourceTree = "<group>"; };
+		B10000000000000000000007 /* DurationCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DurationCalculator.swift; sourceTree = "<group>"; };
+		B10000000000000000000008 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		B10000000000000000000009 /* DurationCalculatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DurationCalculatorTests.swift; sourceTree = "<group>"; };
+		B1000000000000000000000A /* MyScreenTimeUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyScreenTimeUITests.swift; sourceTree = "<group>"; };
+		B1000000000000000000000B /* MyScreenTime.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MyScreenTime.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B1000000000000000000000C /* MyScreenTimeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MyScreenTimeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B1000000000000000000000D /* MyScreenTimeUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MyScreenTimeUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B1000000000000000000000E /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		B1000000000000000000000F /* ParentSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParentSetupView.swift; sourceTree = "<group>"; };
+		B10000000000000000000010 /* ParentSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParentSettingsView.swift; sourceTree = "<group>"; };
+		B10000000000000000000011 /* ParentProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParentProfile.swift; sourceTree = "<group>"; };
+		B10000000000000000000012 /* ParentProfilePersistenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParentProfilePersistenceTests.swift; sourceTree = "<group>"; };
+		B10000000000000000000013 /* ChildFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChildFormView.swift; sourceTree = "<group>"; };
+		B10000000000000000000014 /* ChildDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChildDetailView.swift; sourceTree = "<group>"; };
+		B10000000000000000000015 /* DeviceFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceFormView.swift; sourceTree = "<group>"; };
+		B10000000000000000000016 /* UsageEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageEntryView.swift; sourceTree = "<group>"; };
+		B10000000000000000000017 /* UsageAggregator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageAggregator.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		F10000000000000000000001 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		F10000000000000000000002 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		F10000000000000000000003 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		D10000000000000000000002 = {
+			isa = PBXGroup;
+			children = (
+				D10000000000000000000003 /* MyScreenTime */,
+				D10000000000000000000009 /* MyScreenTimeTests */,
+				D1000000000000000000000A /* MyScreenTimeUITests */,
+				D1000000000000000000000B /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		D10000000000000000000003 /* MyScreenTime */ = {
+			isa = PBXGroup;
+			children = (
+				D10000000000000000000004 /* App */,
+				D10000000000000000000005 /* Design */,
+				D10000000000000000000006 /* Models */,
+				D10000000000000000000007 /* Services */,
+				D10000000000000000000008 /* Resources */,
+			);
+			path = MyScreenTime;
+			sourceTree = "<group>";
+		};
+		D10000000000000000000004 /* App */ = {isa = PBXGroup; children = (B10000000000000000000001, B1000000000000000000000E, B10000000000000000000002, B1000000000000000000000F, B10000000000000000000010, B10000000000000000000013, B10000000000000000000014, B10000000000000000000015, B10000000000000000000016); path = App; sourceTree = "<group>"; };
+		D10000000000000000000005 /* Design */ = {isa = PBXGroup; children = (B10000000000000000000003); path = Design; sourceTree = "<group>"; };
+		D10000000000000000000006 /* Models */ = {isa = PBXGroup; children = (B10000000000000000000011, B10000000000000000000004, B10000000000000000000005, B10000000000000000000006); path = Models; sourceTree = "<group>"; };
+		D10000000000000000000007 /* Services */ = {isa = PBXGroup; children = (B10000000000000000000007, B10000000000000000000017); path = Services; sourceTree = "<group>"; };
+		D10000000000000000000008 /* Resources */ = {isa = PBXGroup; children = (B10000000000000000000008); path = Resources; sourceTree = "<group>"; };
+		D10000000000000000000009 /* MyScreenTimeTests */ = {isa = PBXGroup; children = (B10000000000000000000009, B10000000000000000000012); path = MyScreenTimeTests; sourceTree = "<group>"; };
+		D1000000000000000000000A /* MyScreenTimeUITests */ = {isa = PBXGroup; children = (B1000000000000000000000A); path = MyScreenTimeUITests; sourceTree = "<group>"; };
+		D1000000000000000000000B /* Products */ = {isa = PBXGroup; children = (B1000000000000000000000B, B1000000000000000000000C, B1000000000000000000000D); name = Products; sourceTree = "<group>"; };
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		E10000000000000000000001 /* MyScreenTime */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E10000000000000000000011 /* Build configuration list for PBXNativeTarget "MyScreenTime" */;
+			buildPhases = (F10000000000000000000011 /* Sources */, F10000000000000000000001 /* Frameworks */, F10000000000000000000021 /* Resources */);
+			buildRules = ();
+			dependencies = ();
+			name = MyScreenTime;
+			productName = MyScreenTime;
+			productReference = B1000000000000000000000B /* MyScreenTime.app */;
+			productType = "com.apple.product-type.application";
+		};
+		E10000000000000000000002 /* MyScreenTimeTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E10000000000000000000012 /* Build configuration list for PBXNativeTarget "MyScreenTimeTests" */;
+			buildPhases = (F10000000000000000000012 /* Sources */, F10000000000000000000002 /* Frameworks */, F10000000000000000000022 /* Resources */);
+			buildRules = ();
+			dependencies = (C10000000000000000000011 /* PBXTargetDependency */);
+			name = MyScreenTimeTests;
+			productName = MyScreenTimeTests;
+			productReference = B1000000000000000000000C /* MyScreenTimeTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		E10000000000000000000003 /* MyScreenTimeUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E10000000000000000000013 /* Build configuration list for PBXNativeTarget "MyScreenTimeUITests" */;
+			buildPhases = (F10000000000000000000013 /* Sources */, F10000000000000000000003 /* Frameworks */, F10000000000000000000023 /* Resources */);
+			buildRules = ();
+			dependencies = (C10000000000000000000012 /* PBXTargetDependency */);
+			name = MyScreenTimeUITests;
+			productName = MyScreenTimeUITests;
+			productReference = B1000000000000000000000D /* MyScreenTimeUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		D10000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2610;
+				LastUpgradeCheck = 2610;
+				TargetAttributes = {
+					E10000000000000000000001 = {CreatedOnToolsVersion = 26.1; };
+					E10000000000000000000002 = {CreatedOnToolsVersion = 26.1; TestTargetID = E10000000000000000000001; };
+					E10000000000000000000003 = {CreatedOnToolsVersion = 26.1; TestTargetID = E10000000000000000000001; };
+				};
+			};
+			buildConfigurationList = E10000000000000000000010 /* Build configuration list for PBXProject "MyScreenTime" */;
+			compatibilityVersion = "Xcode 16.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (en, Base);
+			mainGroup = D10000000000000000000002;
+			productRefGroup = D1000000000000000000000B /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (E10000000000000000000001, E10000000000000000000002, E10000000000000000000003);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		F10000000000000000000021 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (A10000000000000000000008 /* Assets.xcassets in Resources */); runOnlyForDeploymentPostprocessing = 0; };
+		F10000000000000000000022 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		F10000000000000000000023 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		F10000000000000000000011 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A10000000000000000000001, A1000000000000000000000B, A10000000000000000000002, A1000000000000000000000C, A1000000000000000000000D, A10000000000000000000010, A10000000000000000000011, A10000000000000000000012, A10000000000000000000013, A10000000000000000000014, A10000000000000000000003, A1000000000000000000000E, A10000000000000000000004, A10000000000000000000005, A10000000000000000000006, A10000000000000000000007); runOnlyForDeploymentPostprocessing = 0; };
+		F10000000000000000000012 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A10000000000000000000009, A1000000000000000000000F); runOnlyForDeploymentPostprocessing = 0; };
+		F10000000000000000000013 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A1000000000000000000000A); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		C10000000000000000000011 /* PBXTargetDependency */ = {isa = PBXTargetDependency; target = E10000000000000000000001 /* MyScreenTime */; targetProxy = C10000000000000000000001 /* PBXContainerItemProxy */; };
+		C10000000000000000000012 /* PBXTargetDependency */ = {isa = PBXTargetDependency; target = E10000000000000000000001 /* MyScreenTime */; targetProxy = C10000000000000000000002 /* PBXContainerItemProxy */; };
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		E10000000000000000000101 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {ALWAYS_SEARCH_USER_PATHS = NO; CLANG_ENABLE_MODULES = YES; CLANG_ENABLE_OBJC_ARC = YES; DEBUG_INFORMATION_FORMAT = dwarf; ENABLE_TESTABILITY = YES; GCC_C_LANGUAGE_STANDARD = gnu17; GCC_OPTIMIZATION_LEVEL = 0; IPHONEOS_DEPLOYMENT_TARGET = 17.0; MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE; ONLY_ACTIVE_ARCH = YES; SDKROOT = iphoneos; SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)"; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; }; name = Debug; };
+		E10000000000000000000102 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {ALWAYS_SEARCH_USER_PATHS = NO; CLANG_ENABLE_MODULES = YES; CLANG_ENABLE_OBJC_ARC = YES; DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym"; ENABLE_NS_ASSERTIONS = NO; GCC_C_LANGUAGE_STANDARD = gnu17; IPHONEOS_DEPLOYMENT_TARGET = 17.0; MTL_ENABLE_DEBUG_INFO = NO; SDKROOT = iphoneos; SWIFT_COMPILATION_MODE = wholemodule; SWIFT_OPTIMIZATION_LEVEL = "-O"; VALIDATE_PRODUCT = YES; }; name = Release; };
+		E10000000000000000000111 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; DEVELOPMENT_ASSET_PATHS = ""; ENABLE_PREVIEWS = YES; GENERATE_INFOPLIST_FILE = YES; INFOPLIST_KEY_CFBundleDisplayName = MyScreenTime; INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle"; INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES; INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES; INFOPLIST_KEY_UILaunchScreen_Generation = YES; INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"; INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"; IPHONEOS_DEPLOYMENT_TARGET = 17.0; MARKETING_VERSION = 1.0; PRODUCT_BUNDLE_IDENTIFIER = com.aymammet.MyScreenTime; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_EMIT_LOC_STRINGS = YES; SWIFT_VERSION = 6.0; TARGETED_DEVICE_FAMILY = "1,2"; }; name = Debug; };
+		E10000000000000000000112 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; ENABLE_PREVIEWS = YES; GENERATE_INFOPLIST_FILE = YES; INFOPLIST_KEY_CFBundleDisplayName = MyScreenTime; INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle"; INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES; INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES; INFOPLIST_KEY_UILaunchScreen_Generation = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; MARKETING_VERSION = 1.0; PRODUCT_BUNDLE_IDENTIFIER = com.aymammet.MyScreenTime; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_EMIT_LOC_STRINGS = YES; SWIFT_VERSION = 6.0; TARGETED_DEVICE_FAMILY = "1,2"; VALIDATE_PRODUCT = YES; }; name = Release; };
+		E10000000000000000000121 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {BUNDLE_LOADER = "$(TEST_HOST)"; CODE_SIGN_STYLE = Automatic; GENERATE_INFOPLIST_FILE = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; PRODUCT_BUNDLE_IDENTIFIER = com.aymammet.MyScreenTimeTests; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_VERSION = 6.0; TARGETED_DEVICE_FAMILY = "1,2"; TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MyScreenTime.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/MyScreenTime"; }; name = Debug; };
+		E10000000000000000000122 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {BUNDLE_LOADER = "$(TEST_HOST)"; CODE_SIGN_STYLE = Automatic; GENERATE_INFOPLIST_FILE = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; PRODUCT_BUNDLE_IDENTIFIER = com.aymammet.MyScreenTimeTests; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_VERSION = 6.0; TARGETED_DEVICE_FAMILY = "1,2"; TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MyScreenTime.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/MyScreenTime"; }; name = Release; };
+		E10000000000000000000131 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; GENERATE_INFOPLIST_FILE = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; PRODUCT_BUNDLE_IDENTIFIER = com.aymammet.MyScreenTimeUITests; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_VERSION = 6.0; TARGETED_DEVICE_FAMILY = "1,2"; TEST_TARGET_NAME = MyScreenTime; }; name = Debug; };
+		E10000000000000000000132 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; GENERATE_INFOPLIST_FILE = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; PRODUCT_BUNDLE_IDENTIFIER = com.aymammet.MyScreenTimeUITests; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_VERSION = 6.0; TARGETED_DEVICE_FAMILY = "1,2"; TEST_TARGET_NAME = MyScreenTime; }; name = Release; };
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		E10000000000000000000010 /* Build configuration list for PBXProject "MyScreenTime" */ = {isa = XCConfigurationList; buildConfigurations = (E10000000000000000000101 /* Debug */, E10000000000000000000102 /* Release */); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		E10000000000000000000011 /* Build configuration list for PBXNativeTarget "MyScreenTime" */ = {isa = XCConfigurationList; buildConfigurations = (E10000000000000000000111 /* Debug */, E10000000000000000000112 /* Release */); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		E10000000000000000000012 /* Build configuration list for PBXNativeTarget "MyScreenTimeTests" */ = {isa = XCConfigurationList; buildConfigurations = (E10000000000000000000121 /* Debug */, E10000000000000000000122 /* Release */); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		E10000000000000000000013 /* Build configuration list for PBXNativeTarget "MyScreenTimeUITests" */ = {isa = XCConfigurationList; buildConfigurations = (E10000000000000000000131 /* Debug */, E10000000000000000000132 /* Release */); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+/* End XCConfigurationList section */
+	};
+	rootObject = D10000000000000000000001 /* Project object */;
+}

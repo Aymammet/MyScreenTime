@@ -13,13 +13,22 @@
 - [x] Created and pushed the initial commit.
 - [x] Created the initial `README.md`.
 - [x] Documented the product requirements and development roadmap in `plan.md`.
-- [x] Select the application platform and technology stack.
-- [x] Initialize the application framework.
+- [x] Select native iOS/iPadOS and the SwiftUI technology stack.
+- [x] Rebuild the project as a native Xcode application.
 - [x] Begin MVP planning and document the primary user flow.
-- [x] Complete the Phase 1 project foundation.
-- [ ] Begin Phase 2 accounts and family setup.
+- [x] Complete the native iOS project foundation.
+- [x] Begin parent profile and family setup.
+- [x] Add SwiftData persistence for the local parent profile.
+- [x] Add child creation and management.
+- [x] Add device creation and management.
+- [x] Build manual screen-time usage entry.
+- [x] Add overlap detection and usage-session editing/deletion.
+- [x] Calculate and display daily totals by child and device.
+- [x] Test totals around midnight and time-zone boundaries.
+- [x] Add separate weekday and weekend daily limits.
+- [ ] Begin Phase 5 with daily, weekly, and monthly summaries.
 
-**Current stage:** Phase 1 complete — ready for accounts and family setup
+**Current stage:** Phase 4 complete — analysis summaries are next
 
 ## 1. Product vision
 
@@ -29,7 +38,7 @@ MyScreenTime is a parent-focused application for tracking and managing children'
 
 The first usable release will support:
 
-- One parent account with secure sign-in
+- One local parent profile
 - Multiple child profiles per parent
 - Multiple devices per child
 - Custom daily screen-time limits for each child
@@ -97,12 +106,11 @@ The first usable release will support:
 
 ## 4. Main screens
 
-### Authentication
+### Parent setup
 
-- Sign up
-- Sign in
-- Sign out
-- Password recovery
+- Parent name and preferences
+- Notification preferences
+- Optional Sign in with Apple and iCloud synchronization after the local MVP
 
 ### Parent dashboard
 
@@ -156,7 +164,7 @@ The first usable release will support:
 - The interface must also display the number of minutes over the limit.
 - Overlapping sessions should show a warning and require correction for the MVP.
 - Archived devices retain their historical usage records.
-- All dates and notifications use the parent's configured time zone.
+- All dates and notifications use the iOS device's current time zone.
 - Weekday and weekend limits can be added after the basic daily-limit flow works.
 - A child cannot have overlapping usage sessions in the MVP, including sessions on different devices.
 - Daily limits apply to a child's combined usage across all devices in the MVP.
@@ -178,50 +186,51 @@ Notifications should not be repeatedly sent for the same threshold on the same d
 
 ### Phase 0 — Product decisions
 
-- [x] Choose the first platform: responsive web application.
-- [x] Choose the technology stack.
-- [x] Use cloud accounts and synchronized cloud storage.
+- [x] Choose the first platform: native iOS and iPadOS application.
+- [x] Choose Swift, SwiftUI, SwiftData, UserNotifications, and Swift Charts.
+- [x] Use local-first storage; add optional iCloud synchronization after local flows are stable.
 - [x] Prevent overlapping sessions so screen-time minutes are not counted twice.
 - [x] Apply daily limits to each child's combined device usage in the MVP.
 - [x] Create basic wireframes and define the primary user flow.
 
 ### Phase 1 — Project foundation
 
-- [x] Initialize the selected application framework.
-- [x] Add formatting, linting, and test tooling.
-- [x] Configure environment variables and provide an example environment file.
-- [x] Establish the folder structure and coding conventions.
-- [x] Create the database schema and initial migration.
-- [x] Add a continuous-integration workflow.
-- [x] Document local setup and development commands in `README.md`.
+- [x] Create the native Xcode project and shared scheme.
+- [x] Add the SwiftUI app and initial simulator screen.
+- [x] Establish App, Design, Models, Services, Resources, and Tests folders.
+- [x] Add initial child, device, and usage-session domain models.
+- [x] Add Swift Testing unit tests and an XCUITest launch test.
+- [x] Add an iOS continuous-integration workflow.
+- [x] Document the Xcode build, run, and test workflow in `README.md`.
 
-### Phase 2 — Accounts and family setup
+### Phase 2 — Parent and family setup
 
-- [ ] Implement parent authentication.
-- [ ] Implement parent profile settings.
-- [ ] Add child creation, editing, archiving, and validation.
-- [ ] Add device creation, editing, archiving, and validation.
-- [ ] Ensure parents can access only their own family data.
-- [ ] Add automated tests for account and ownership rules.
+- [x] Implement the local parent profile and settings.
+- [x] Add SwiftData persistence and a data-container configuration.
+- [x] Add child creation, editing, archiving, and validation.
+- [x] Add device creation, editing, archiving, and validation.
+- [x] Add family setup navigation and empty states.
+- [x] Add automated tests for parent, child, device, and persistence rules.
 
 ### Phase 3 — Screen-time tracking
 
-- [ ] Build the manual usage-entry form.
-- [ ] Calculate duration from start and end times.
-- [ ] Validate dates, times, and overlapping sessions.
-- [ ] Add usage history.
-- [ ] Support editing and deleting usage sessions.
-- [ ] Calculate daily totals by child and device.
-- [ ] Add unit and integration tests for time calculations.
+- [x] Build the manual usage-entry form.
+- [x] Calculate duration from start and end times.
+- [x] Validate dates and time ranges.
+- [x] Prevent overlapping sessions.
+- [x] Add recent usage history.
+- [x] Support editing and deleting usage sessions.
+- [x] Calculate daily totals by child and device.
+- [x] Add unit, persistence, and UI tests for initial usage entry and time calculations.
 
 ### Phase 4 — Dashboard and limits
 
-- [ ] Build the parent dashboard.
-- [ ] Display used, remaining, and over-limit minutes.
-- [ ] Add progress indicators and status colors.
-- [ ] Add daily-limit configuration.
-- [ ] Support weekday and weekend limits if included in the first release.
-- [ ] Test totals around midnight and time-zone boundaries.
+- [x] Build the parent dashboard.
+- [x] Display used, remaining, and over-limit minutes.
+- [x] Add progress indicators and status colors.
+- [x] Add daily-limit configuration.
+- [x] Support weekday and weekend limits if included in the first release.
+- [x] Test totals around midnight and time-zone boundaries.
 
 ### Phase 5 — Analysis
 
@@ -286,15 +295,23 @@ These are intentionally outside the initial MVP:
 - School-day, holiday, and vacation schedules
 - Data export and printable family reports
 - Localization and multiple languages
-- Native mobile applications and push notifications
+- Android application and remote push notifications
 
 ## 11. Immediate next steps
 
-- [x] Confirm the initial platform and technology stack.
+- [x] Confirm the native iOS platform and SwiftUI technology stack.
 - [x] Agree on MVP boundaries and resolve initial business rules.
 - [x] Create low-fidelity wireframes for the dashboard, child details, usage entry, and analysis screens.
-- [x] Initialize the application and complete Phase 1.
-- [ ] Begin Phase 2 by implementing parent authentication.
+- [x] Rebuild the application as native iOS and complete Phase 1.
+- [x] Begin Phase 2 by implementing the local parent profile and SwiftData persistence.
+- [x] Implement child creation, editing, archiving, and validation.
+- [x] Implement device creation, editing, archiving, and validation.
+- [x] Begin Phase 3 with the manual usage-entry form and automatic duration preview.
+- [x] Add overlap detection, then support editing and deleting usage sessions.
+- [x] Calculate daily totals by child and device.
+- [x] Test totals around midnight and time-zone boundaries.
+- [x] Add separate weekday and weekend daily limits.
+- [ ] Begin Phase 5 with daily, weekly, and monthly summaries.
 
 This document should be updated as requirements change and tasks are completed.
 

@@ -1,4 +1,4 @@
-name: CI
+name: iOS CI
 
 on:
   pull_request:
@@ -6,42 +6,21 @@ on:
     branches: [main]
 
 jobs:
-  verify:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+  build-and-test:
+    runs-on: macos-15
+    timeout-minutes: 20
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.4.app
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Generate Prisma client
-        run: npm run db:generate
-        env:
-          DATABASE_URL: postgresql://user:password@localhost:5432/myscreentime
-
-      - name: Check formatting
-        run: npm run format:check
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Generate Next.js route types
-        run: npm run typegen
-
-      - name: Type-check
-        run: npm run typecheck
-
-      - name: Run unit tests
-        run: npm run test
-
-      - name: Build
-        run: npm run build
+      - name: Build and test
+        run: |
+          xcodebuild test \
+            -project MyScreenTime.xcodeproj \
+            -scheme MyScreenTime \
+            -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=latest' \
+            CODE_SIGNING_ALLOWED=NO

@@ -1,4 +1,4 @@
-# MyScreenTime MVP Wireframes
+# MyScreenTime iOS MVP Wireframes
 
 These low-fidelity wireframes define information hierarchy and primary actions. They are not final visual designs.
 
@@ -92,7 +92,7 @@ Validation appears beside the affected field. An overlap message identifies the 
 └─────────────────────────────────────────────────────────────┘
 ```
 
-## 5. Navigation on small screens
+## 5. iPhone tab navigation
 
 ```text
 ┌──────────────────────────────┐
@@ -104,4 +104,4 @@ Validation appears beside the affected field. An overlap message identifies the 
 └──────────────────────────────┘
 ```
 
-The primary **Add screen time** action remains prominent on the dashboard and child-details screen.
+The primary **Add screen time** action remains prominent on the dashboard and child-details screen. On iPad, the same destinations can move into a sidebar while preserving the screen hierarchy.

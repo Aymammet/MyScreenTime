@@ -1,30 +1,18 @@
-# Dependencies
-node_modules/
+# Xcode build output
+.build/
+DerivedData/
+build/
 
-# Next.js
-.next/
-out/
-next-env.d.ts
-*.tsbuildinfo
+# Per-user Xcode settings
+xcuserdata/
+*.xcuserstate
 
-# Tests
-coverage/
-playwright-report/
-test-results/
+# Swift Package Manager
+.swiftpm/
+.package.resolved
 
-# Environment files
-.env
-.env.local
-.env.*.local
-!.env.example
-
-# Generated Prisma client artifacts
-src/generated/prisma/
-
-# Editors and operating systems
+# macOS
 .DS_Store
-*.swp
 
-# Logs
-*.log
-npm-debug.log*
+# Local secrets and configuration
+*.xcconfig.local

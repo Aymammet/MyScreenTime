@@ -1,65 +1,54 @@
-# MyScreenTime MVP Product Decisions
+# MyScreenTime iOS Product Decisions
 
 ## Platform
 
-The first release will be a responsive web application. It will work on phones, tablets, Chromebooks, and desktop browsers from one codebase. Native mobile applications can be considered after the MVP is validated.
+MyScreenTime will be a native iOS and iPadOS application built and tested in Xcode. The first release targets iOS 17 or newer and uses one SwiftUI codebase for iPhone and iPad.
 
 ## Technology stack
 
-- **Application:** Next.js with the App Router
-- **Language:** TypeScript
-- **Interface:** React, Tailwind CSS, and accessible reusable components
-- **Database:** PostgreSQL
-- **Database access:** Prisma ORM with migrations
-- **Authentication:** Auth.js with email/password credentials for the MVP
-- **Validation:** Zod schemas shared between forms and server actions
-- **Unit and component testing:** Vitest and React Testing Library
-- **End-to-end testing:** Playwright
-- **Code quality:** ESLint and Prettier
-- **Deployment target:** A managed web host and managed PostgreSQL provider, selected before production release
+- **Language:** Swift 6
+- **Interface:** SwiftUI
+- **Architecture:** Feature-oriented MVVM with small observable state objects
+- **Local persistence:** SwiftData
+- **Optional synchronization:** CloudKit through SwiftData after local flows are stable
+- **Notifications:** UserNotifications for local limit alerts
+- **Charts:** Swift Charts
+- **Unit tests:** Swift Testing
+- **UI tests:** XCTest and XCUITest
+- **Dependencies:** Apple frameworks first; third-party packages only when they provide clear value
 
-Exact package versions will be selected when the application framework is initialized.
+## Account approach
 
-## Data and synchronization
-
-The MVP will use parent accounts and cloud storage. A signed-in parent can access the same family data from different browsers or devices. Local-only storage will not be the system of record.
+The first simulator-testable MVP will work locally without requiring account creation. A parent profile will represent the device owner. Sign in with Apple and iCloud synchronization can be added after local family setup and tracking are stable.
 
 ## Screen-time counting
 
-For the MVP, a child cannot have overlapping usage sessions, even when the sessions use different devices. This keeps the child's total screen time unambiguous and prevents the same minutes from being counted twice.
-
-If a parent attempts to add an overlapping session, the application will identify the conflict and ask them to correct the entry.
+A child cannot have overlapping usage sessions, even when the sessions use different devices. This prevents the same minutes from being counted twice.
 
 ## Limits
 
 The MVP daily limit applies to the child's combined screen time across all devices. Device-level limits are deferred until after the MVP.
 
-The dashboard will show:
-
-- Total minutes used
-- Daily limit
-- Minutes remaining
-- Minutes over the limit, when applicable
-- Usage broken down by device
-
 ## Time rules
 
-- Usage is stored as a start timestamp and end timestamp.
-- Duration is calculated, not manually entered.
-- Overnight sessions are not supported in the initial entry form; a parent records them as two sessions split at midnight.
-- Daily totals follow the parent's configured time zone.
-- Archived children and devices retain historical records.
+- A usage session stores a start date and end date.
+- Duration is calculated and rounded up to the next whole minute.
+- End time must be later than start time.
+- Overnight sessions are entered as two sessions split at midnight in the MVP.
+- Archived children and devices retain their historical records.
+- Calendar calculations use the device's current time zone.
 
-## Primary user flow
+## Testing workflow
 
-1. A parent creates an account or signs in.
-2. The parent adds a child and sets a combined daily limit.
-3. The parent adds the child's devices.
-4. The parent records a usage session by choosing a device and entering its start and end times.
-5. The dashboard immediately updates used and remaining time.
-6. The parent reviews usage history and analysis.
-7. The application creates an in-app notification when a configured threshold is reached.
+Each milestone must remain runnable in the iOS Simulator. The expected workflow is:
+
+1. Open the Xcode project.
+2. Select an iPhone simulator.
+3. Build and run with `⌘R`.
+4. Manually test the new user flow.
+5. Run automated tests with `⌘U`.
+6. Commit only after the milestone builds and tests pass.
 
 ## MVP boundary
 
-The MVP includes manual tracking, combined child limits, analysis, and in-app notifications. Automatic device monitoring, child accounts, multiple guardians, device-level limits, native applications, and push notifications remain future work.
+The MVP includes local parent settings, child and device management, manual screen-time tracking, combined child limits, analysis, and local notifications. Automatic device monitoring, child accounts, multiple guardians, device-level limits, Android support, and remote push notifications remain future work.
