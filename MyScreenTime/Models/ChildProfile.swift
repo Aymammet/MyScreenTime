@@ -8,6 +8,7 @@ final class ChildProfile {
     var dailyLimitMinutes: Int
     var weekdayLimitMinutes: Int?
     var weekendLimitMinutes: Int?
+    @Attribute(.externalStorage) var profilePhotoData: Data?
     var isActive: Bool
     var createdAt: Date
     var updatedAt: Date
@@ -23,6 +24,7 @@ final class ChildProfile {
         dailyLimitMinutes: Int = 120,
         weekdayLimitMinutes: Int? = nil,
         weekendLimitMinutes: Int? = nil,
+        profilePhotoData: Data? = nil,
         isActive: Bool = true,
         createdAt: Date = .now,
         updatedAt: Date = .now,
@@ -35,6 +37,7 @@ final class ChildProfile {
         self.dailyLimitMinutes = dailyLimitMinutes
         self.weekdayLimitMinutes = weekdayLimitMinutes
         self.weekendLimitMinutes = weekendLimitMinutes
+        self.profilePhotoData = profilePhotoData
         self.isActive = isActive
         self.createdAt = createdAt
         self.updatedAt = updatedAt

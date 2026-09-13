@@ -33,6 +33,12 @@ struct ChildDetailView: View {
 
     var body: some View {
         List {
+            Section {
+                HStack(spacing: 14) {
+                    ChildAvatarView(child: child, size: 56)
+                    Text(child.name).font(.title2.bold())
+                }
+            }
             Section("Today") {
                 LabeledContent("Used", value: UsageAggregator.format(minutes: todaySummary.usedMinutes))
                     .accessibilityIdentifier("today-used-total")

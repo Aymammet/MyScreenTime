@@ -46,6 +46,7 @@ final class MyScreenTimeUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Sam's iPhone"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Phone"].exists)
 
+        app.swipeUp()
         app.buttons["add-usage-button"].tap()
         XCTAssertTrue(app.navigationBars["Add Usage"].waitForExistence(timeout: 5))
         let durationPreview = app.descendants(matching: .any)["duration-preview"]

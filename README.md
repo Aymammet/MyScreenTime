@@ -23,6 +23,10 @@ SwiftData provides local persistence. Optional iCloud synchronization can be add
 
 After setup, add a child and choose one limit for every day or separate weekday and weekend limits. The parent dashboard shows today's combined usage, remaining allowance, and limit status for every child. Tap a child to see the same daily summary plus today's subtotal for each device. Use **Record screen time** to choose a device, date, start time, and end time; totals refresh automatically after saving, editing, or deleting a session. The calculated minutes appear before saving, and overlapping sessions for the same child are blocked across all devices. Saved sessions appear under **Recent usage**: tap one to edit it or swipe left to delete it with confirmation. Tap a device to edit it, or swipe a child or device left to edit or archive it. Close and reopen the app to verify that SwiftData restores the family and usage history.
 
+The main dashboard also shows today's usage, this week's total and daily average, and this month's total and daily average. Use **Start timer** on a child row to select a device and duration. While running, the compact child card shows the countdown on the right, a **Stop timer** action beneath it, and session progress along the bottom. Stopping early records elapsed time and cancels the pending completion notification. The timer survives app restarts, sends a local notification when it ends, and adds the completed duration to the child's usage automatically when the app is active or next opened.
+
+Open **Settings** and select a child to edit their name, choose or remove a profile photo, update their limits, and review that child's usage for today, this week, and this month. Profile photos are resized before being stored locally and appear on the main dashboard and child detail screen.
+
 No external packages, environment variables, or database are required.
 
 ## Run tests in Xcode
@@ -30,7 +34,7 @@ No external packages, environment variables, or database are required.
 Press **Test** (`⌘U`) to run:
 
 - Three unit tests for usage-duration calculations
-- Fourteen tests for family persistence, session lifecycle, overlap detection, daily aggregation, time zones, and weekday/weekend limits
+- Seventeen tests for persistence, profile photos, overlap detection, aggregation, analysis periods, time zones, limits, and timers
 - One UI test covering setup, overlap rejection, usage editing, and confirmed deletion
 
 ## Command-line verification

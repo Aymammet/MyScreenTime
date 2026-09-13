@@ -4,6 +4,7 @@ import SwiftUI
 struct ParentSettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Query(sort: \ChildProfile.createdAt) private var allChildren: [ChildProfile]
 
     let parent: ParentProfile
 
@@ -18,6 +19,10 @@ struct ParentSettingsView: View {
 
     private var isNameValid: Bool {
         ParentProfile.isValidName(name)
+    }
+
+    private var children: [ChildProfile] {
+        allChildren.filter { $0.parent?.id == parent.id }
     }
 
     var body: some View {
@@ -38,6 +43,28 @@ struct ParentSettingsView: View {
                 Section("Preferences") {
                     Toggle("Screen-time notifications", isOn: $notificationsEnabled)
                     LabeledContent("Time zone", value: parent.timeZoneIdentifier)
+                }
+
+                Section("Children") {
+                    if children.isEmpty {
+                        Text("No children added yet")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(children) { child in
+                            NavigationLink {
+                                ChildSettingsView(parent: parent, child: child)
+                            } label: {
+                                HStack(spacing: 12) {
+                                    ChildAvatarView(child: child, size: 40)
+                                    VStack(alignment: .leading) {
+                                        Text(child.name).font(.headline)
+                                        Text(child.isActive ? "Active" : "Archived")
+                                            .font(.caption).foregroundStyle(.secondary)
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
             .navigationTitle("Parent Settings")

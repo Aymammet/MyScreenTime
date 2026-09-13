@@ -42,6 +42,21 @@ struct DailyUsageSummary: Equatable {
 
 enum UsageAggregator {
     static func totalMinutes(
+        in interval: DateInterval,
+        childIDs: Set<UUID>,
+        sessions: [UsageSession]
+    ) -> Int {
+        sessions
+            .filter { session in
+                guard let childID = session.child?.id else { return false }
+                return childIDs.contains(childID)
+                    && session.startedAt >= interval.start
+                    && session.startedAt < interval.end
+            }
+            .reduce(0) { $0 + $1.durationMinutes }
+    }
+
+    static func totalMinutes(
         on day: Date,
         childID: UUID,
         sessions: [UsageSession],

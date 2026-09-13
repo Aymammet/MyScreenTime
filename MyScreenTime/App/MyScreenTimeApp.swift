@@ -14,7 +14,7 @@ struct MyScreenTimeApp: App {
                 for: ParentProfile.self,
                 ChildProfile.self,
                 Device.self,
-                UsageSession.self,
+            UsageSession.self,
                 configurations: configuration
             )
         } catch {

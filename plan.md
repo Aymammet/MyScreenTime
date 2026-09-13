@@ -26,9 +26,12 @@
 - [x] Calculate and display daily totals by child and device.
 - [x] Test totals around midnight and time-zone boundaries.
 - [x] Add separate weekday and weekend daily limits.
-- [ ] Begin Phase 5 with daily, weekly, and monthly summaries.
+- [x] Add daily, weekly, and monthly dashboard summaries.
+- [x] Add child device timers with completion notifications and automatic usage logging.
+- [x] Add child settings for name, profile photo, limits, and individual usage summaries.
+- [ ] Add analysis charts and previous-period comparisons.
 
-**Current stage:** Phase 4 complete — analysis summaries are next
+**Current stage:** Phase 5 in progress — dashboard summaries and screen timers complete, charts and comparisons next
 
 ## 1. Product vision
 
@@ -211,6 +214,7 @@ Notifications should not be repeatedly sent for the same threshold on the same d
 - [x] Add device creation, editing, archiving, and validation.
 - [x] Add family setup navigation and empty states.
 - [x] Add automated tests for parent, child, device, and persistence rules.
+- [x] Add family management in Settings with child names and profile photos.
 
 ### Phase 3 — Screen-time tracking
 
@@ -234,8 +238,9 @@ Notifications should not be repeatedly sent for the same threshold on the same d
 
 ### Phase 5 — Analysis
 
-- [ ] Build daily, weekly, and monthly summaries.
-- [ ] Calculate averages using clearly defined rules.
+- [x] Build daily, weekly, and monthly summaries.
+- [x] Calculate averages using clearly defined rules.
+- [x] Show daily, weekly, and monthly totals for each child in Settings.
 - [ ] Add charts for trends and device breakdowns.
 - [ ] Compare the current period with the previous period.
 - [ ] Handle incomplete weeks and months consistently.
@@ -244,6 +249,7 @@ Notifications should not be repeatedly sent for the same threshold on the same d
 ### Phase 6 — Notifications
 
 - [ ] Build in-app notifications.
+- [x] Add local completion notifications for child screen timers.
 - [ ] Add near-limit, reached-limit, and exceeded-limit events.
 - [ ] Prevent duplicate threshold notifications.
 - [ ] Add notification preferences.
@@ -311,7 +317,10 @@ These are intentionally outside the initial MVP:
 - [x] Calculate daily totals by child and device.
 - [x] Test totals around midnight and time-zone boundaries.
 - [x] Add separate weekday and weekend daily limits.
-- [ ] Begin Phase 5 with daily, weekly, and monthly summaries.
+- [x] Add daily, weekly, and monthly dashboard summaries.
+- [x] Add child device timers with completion notifications and automatic usage logging.
+- [x] Add child settings for name, profile photo, limits, and individual usage summaries.
+- [ ] Add analysis charts and previous-period comparisons.
 
 This document should be updated as requirements change and tasks are completed.
 

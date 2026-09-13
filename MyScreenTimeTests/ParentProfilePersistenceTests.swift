@@ -379,4 +379,60 @@ struct ParentProfilePersistenceTests {
 
         #expect(child.limitMinutes(on: .now) == 105)
     }
+
+    @Test("Period totals include only the parent's children and interval")
+    func calculatesAnalysisPeriodTotals() {
+        let child = ChildProfile(name: "Sam")
+        let sibling = ChildProfile(name: "Avery")
+        let start = Date(timeIntervalSince1970: 1_000_000)
+        let interval = DateInterval(start: start, duration: 7 * 24 * 60 * 60)
+        let sessions = [
+            UsageSession(startedAt: start, endedAt: start.addingTimeInterval(30 * 60), child: child),
+            UsageSession(startedAt: start.addingTimeInterval(24 * 60 * 60), endedAt: start.addingTimeInterval(24 * 60 * 60 + 45 * 60), child: child),
+            UsageSession(startedAt: start, endedAt: start.addingTimeInterval(60 * 60), child: sibling),
+            UsageSession(startedAt: interval.end, endedAt: interval.end.addingTimeInterval(20 * 60), child: child)
+        ]
+
+        #expect(UsageAggregator.totalMinutes(
+            in: interval,
+            childIDs: [child.id],
+            sessions: sessions
+        ) == 75)
+    }
+
+    @Test("Screen timers preserve their requested duration")
+    func calculatesScreenTimerDuration() {
+        let start = Date(timeIntervalSince1970: 2_000_000)
+        let timer = ActiveScreenTimer(
+            id: UUID(),
+            childID: UUID(),
+            childName: "John",
+            deviceID: UUID(),
+            deviceName: "TV",
+            startedAt: start,
+            endsAt: start.addingTimeInterval(30 * 60)
+        )
+
+        #expect(timer.durationMinutes == 30)
+    }
+
+    @Test("A child's profile photo is stored with their profile")
+    func storesChildProfilePhoto() throws {
+        let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try ModelContainer(
+            for: ParentProfile.self,
+            ChildProfile.self,
+            Device.self,
+            UsageSession.self,
+            configurations: configuration
+        )
+        let context = container.mainContext
+        let photo = Data([0x01, 0x02, 0x03])
+        let child = ChildProfile(name: "Sam", profilePhotoData: photo)
+        context.insert(child)
+        try context.save()
+
+        let saved = try context.fetch(FetchDescriptor<ChildProfile>()).first
+        #expect(saved?.profilePhotoData == photo)
+    }
 }
