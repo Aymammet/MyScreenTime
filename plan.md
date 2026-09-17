@@ -29,9 +29,14 @@
 - [x] Add daily, weekly, and monthly dashboard summaries.
 - [x] Add child device timers with completion notifications and automatic usage logging.
 - [x] Add child settings for name, profile photo, limits, and individual usage summaries.
-- [ ] Add analysis charts and previous-period comparisons.
+- [x] Add analysis charts and previous-period comparisons.
+- [x] Support shared household devices as well as devices assigned to one child.
+- [x] Add household-device and child-device analysis with average comparisons.
+- [x] Add Daily Insights layout and source-metadata structure to all Analysis destinations.
+- [ ] Add a daily insights and family screen-time news section with source information.
+- [ ] Begin Phase 6 with in-app limit notifications.
 
-**Current stage:** Phase 5 in progress — dashboard summaries and screen timers complete, charts and comparisons next
+**Current stage:** Phase 5A in progress — Daily Insights layout ready; reviewed content-source integration next
 
 ## 1. Product vision
 
@@ -78,7 +83,8 @@ The first usable release will support:
 ### Device
 
 - ID
-- Child ID
+- Optional Child ID for devices assigned to one child
+- Household/common-device status for shared devices such as a home TV or PS5
 - Name
 - Type: phone, tablet, PC, Chromebook, TV, game console, or other
 - Optional icon or color
@@ -148,12 +154,18 @@ The first usable release will support:
 - Monthly total and daily average
 - Previous-period comparison
 - Breakdown by child and device
+- Separate analysis for shared household devices and each child's personal devices
+- Daily average for each device, such as “Home TV: 47 min daily average”
+- Comparison against the relevant previous period or baseline, such as “7 min higher than average”
 - Clear above-average and below-average messages
+- Daily insights section at the bottom with sourced screen-time statistics or relevant news
+- Every insight or news item must display its source, publication date, and a link when available
 
 ### Settings
 
 - Manage parent profile
 - Manage children and devices
+- When adding a device, choose whether it is a shared household device or belongs to one child
 - Configure daily limits
 - Configure notification preferences
 - Set time zone
@@ -171,6 +183,11 @@ The first usable release will support:
 - Weekday and weekend limits can be added after the basic daily-limit flow works.
 - A child cannot have overlapping usage sessions in the MVP, including sessions on different devices.
 - Daily limits apply to a child's combined usage across all devices in the MVP.
+- A device can either be shared by the household or assigned exclusively to one child.
+- Usage recorded on a shared device must still identify the child who used it so child totals remain accurate.
+- Shared-device usage contributes to both the device's household analysis and the selected child's analysis.
+- Device comparison text must clearly identify the comparison baseline, such as the previous seven days.
+- Statistics and news must never be presented without a verifiable source and publication date.
 - Detailed decisions are recorded in `docs/product-decisions.md`.
 
 ## 6. Notification rules
@@ -241,10 +258,28 @@ Notifications should not be repeatedly sent for the same threshold on the same d
 - [x] Build daily, weekly, and monthly summaries.
 - [x] Calculate averages using clearly defined rules.
 - [x] Show daily, weekly, and monthly totals for each child in Settings.
-- [ ] Add charts for trends and device breakdowns.
-- [ ] Compare the current period with the previous period.
-- [ ] Handle incomplete weeks and months consistently.
-- [ ] Verify calculations with representative test data.
+- [x] Add charts for trends and device breakdowns.
+- [x] Compare the current period with the previous period.
+- [x] Handle incomplete weeks and months consistently.
+- [x] Verify calculations with representative test data.
+- [x] Add analysis for every shared household device.
+- [x] Add per-device analysis within each child's Analysis section.
+- [x] Calculate daily device averages and compare them with the previous equivalent period.
+- [x] Display concise comparison messages for device usage changes.
+- [ ] Add filters for all devices, shared devices, children, and individual child devices.
+
+### Phase 5A — Shared devices and daily insights
+
+- [x] Update the device model to support shared household devices and child-owned devices.
+- [x] Add a “Shared household device” option to the device-creation and editing forms.
+- [x] Allow usage sessions for a shared device to be assigned to the child who used it.
+- [x] Include shared-device sessions in both household-device and child totals without double-counting.
+- [x] Add a text-based daily insights section at the bottom of Analysis.
+- [ ] Support sourced regional statistics, expert guidance, and relevant screen-time news.
+- [x] Build insight cards with source, publication date, region, and external link fields.
+- [x] Add loading, empty, stale-content, and unavailable-source states for daily insights.
+- [ ] Connect a reviewed content source and implement daily refresh/offline caching.
+- [ ] Test shared-device ownership, aggregation, comparisons, and insight presentation.
 
 ### Phase 6 — Notifications
 
@@ -320,7 +355,11 @@ These are intentionally outside the initial MVP:
 - [x] Add daily, weekly, and monthly dashboard summaries.
 - [x] Add child device timers with completion notifications and automatic usage logging.
 - [x] Add child settings for name, profile photo, limits, and individual usage summaries.
-- [ ] Add analysis charts and previous-period comparisons.
+- [x] Add analysis charts and previous-period comparisons.
+- [x] Add shared household devices and child-owned device assignment.
+- [x] Add household-device and per-child device averages with previous-period comparisons.
+- [ ] Add the sourced daily statistics and news section at the bottom of Analysis.
+- [ ] Begin Phase 6 with in-app limit notifications.
 
 This document should be updated as requirements change and tasks are completed.
 

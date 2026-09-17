@@ -16,11 +16,11 @@ struct ChildDetailView: View {
     @State private var sessionToDelete: UsageSession?
 
     private var activeDevices: [Device] {
-        allDevices.filter { $0.child?.id == child.id && $0.isActive }
+        allDevices.filter { $0.isActive && $0.isAvailable(to: child.id) }
     }
 
     private var archivedDevices: [Device] {
-        allDevices.filter { $0.child?.id == child.id && !$0.isActive }
+        allDevices.filter { !$0.isActive && $0.isAvailable(to: child.id) }
     }
 
     private var recentUsageSessions: [UsageSession] {
@@ -177,7 +177,7 @@ struct ChildDetailView: View {
             if let sessionToEdit {
                 UsageEntryView(
                     child: child,
-                    devices: allDevices.filter { $0.child?.id == child.id },
+                    devices: allDevices.filter { $0.isAvailable(to: child.id) },
                     session: sessionToEdit
                 )
             }
@@ -232,6 +232,7 @@ struct ChildDetailView: View {
     private func deviceRow(_ device: Device) -> some View {
         let usedToday = UsageAggregator.totalMinutes(
             on: .now,
+            childID: child.id,
             deviceID: device.id,
             sessions: allUsageSessions
         )
@@ -246,7 +247,7 @@ struct ChildDetailView: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(device.name)
                     .font(.headline)
-                Text(device.kind.title)
+                Text(device.isShared ? "\(device.kind.title) • Shared" : device.kind.title)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }

@@ -5,6 +5,36 @@ import Testing
 
 @MainActor
 struct ParentProfilePersistenceTests {
+    @Test("Daily insights require source metadata and secure links")
+    func validatesDailyInsightMetadata() {
+        let now = Date(timeIntervalSince1970: 2_000_000)
+        func insight(source: String = "Reviewed publisher", link: String = "https://example.org/article", date: Date? = nil) -> DailyInsight {
+            DailyInsight(id: "test", kind: .news, title: "Test title", summary: "Test summary", sourceName: source,
+                         publishedAt: date ?? now, reviewedAt: now, region: "Test region", sourceURL: URL(string: link)!)
+        }
+        #expect(insight().isValid(at: now))
+        #expect(!insight(source: "  ").isValid(at: now))
+        #expect(!insight(link: "http://example.org/article").isValid(at: now))
+        #expect(!insight(date: now.addingTimeInterval(60)).isValid(at: now))
+        #expect(!insight().needsReview(at: now))
+        #expect(insight().needsReview(at: now.addingTimeInterval(31 * 24 * 60 * 60)))
+    }
+
+    @Test("Daily insights decode reviewed content and reject malformed catalogs")
+    func decodesDailyInsightsCatalog() throws {
+        let item = DailyInsight(id: "fixture", kind: .statistic, title: "Test statistic", summary: "Fixture only",
+                                sourceName: "Test source", publishedAt: Date(timeIntervalSince1970: 1_000),
+                                reviewedAt: Date(timeIntervalSince1970: 2_000), region: "Test region",
+                                sourceURL: URL(string: "https://example.org/report")!)
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let result = try DailyInsightsCatalog.decode(encoder.encode([item]), now: Date(timeIntervalSince1970: 3_000))
+        #expect(result == [item])
+        #expect(throws: (any Error).self) {
+            try DailyInsightsCatalog.decode(Data("not json".utf8), now: .now)
+        }
+    }
+
     @Test("A parent profile can be stored and fetched")
     func storesAndFetchesProfile() throws {
         let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
@@ -102,6 +132,51 @@ struct ParentProfilePersistenceTests {
         #expect(Device.isValidName(" P ") == false)
         #expect(Device.isValidName(" Phone "))
         #expect(Device.isValidName(String(repeating: "D", count: 51)) == false)
+    }
+
+    @Test("A shared device is available to every child and persists without a child owner")
+    func storesSharedDevice() throws {
+        let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try ModelContainer(
+            for: ParentProfile.self,
+            ChildProfile.self,
+            Device.self,
+            UsageSession.self,
+            configurations: configuration
+        )
+        let context = container.mainContext
+        let sam = ChildProfile(name: "Sam")
+        let avery = ChildProfile(name: "Avery")
+        let tv = Device(name: "Home TV", kind: .television, isShared: true)
+
+        context.insert(sam)
+        context.insert(avery)
+        context.insert(tv)
+        try context.save()
+
+        let saved = try #require(context.fetch(FetchDescriptor<Device>()).first)
+        #expect(saved.isShared)
+        #expect(saved.child == nil)
+        #expect(saved.isAvailable(to: sam.id))
+        #expect(saved.isAvailable(to: avery.id))
+    }
+
+    @Test("Shared device usage stays attributed to each child")
+    func attributesSharedDeviceUsage() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let day = calendar.date(from: DateComponents(year: 2026, month: 9, day: 13, hour: 10))!
+        let sam = ChildProfile(name: "Sam")
+        let avery = ChildProfile(name: "Avery")
+        let tv = Device(name: "Home TV", kind: .television, isShared: true)
+        let sessions = [
+            UsageSession(startedAt: day, endedAt: day.addingTimeInterval(30 * 60), child: sam, device: tv),
+            UsageSession(startedAt: day.addingTimeInterval(60 * 60), endedAt: day.addingTimeInterval(105 * 60), child: avery, device: tv)
+        ]
+
+        #expect(UsageAggregator.totalMinutes(on: day, deviceID: tv.id, sessions: sessions, calendar: calendar) == 75)
+        #expect(UsageAggregator.totalMinutes(on: day, childID: sam.id, deviceID: tv.id, sessions: sessions, calendar: calendar) == 30)
+        #expect(UsageAggregator.totalMinutes(on: day, childID: avery.id, deviceID: tv.id, sessions: sessions, calendar: calendar) == 45)
     }
 
     @Test("A usage session can be stored, edited, and deleted")
@@ -434,5 +509,68 @@ struct ParentProfilePersistenceTests {
 
         let saved = try context.fetch(FetchDescriptor<ChildProfile>()).first
         #expect(saved?.profilePhotoData == photo)
+    }
+
+    @Test("Analysis compares matching portions of incomplete weeks")
+    func comparesIncompleteAnalysisPeriods() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        calendar.firstWeekday = 2
+        let now = calendar.date(from: DateComponents(year: 2026, month: 9, day: 16, hour: 12))!
+        let child = ChildProfile(name: "Sam")
+        let phone = Device(name: "Phone", kind: .phone, child: child)
+
+        func session(year: Int = 2026, month: Int = 9, day: Int, minutes: Int) -> UsageSession {
+            let start = calendar.date(from: DateComponents(year: year, month: month, day: day, hour: 9))!
+            return UsageSession(startedAt: start, endedAt: start.addingTimeInterval(TimeInterval(minutes * 60)), child: child, device: phone)
+        }
+
+        let analysis = AnalysisCalculator.analyze(
+            period: .week,
+            now: now,
+            childIDs: [child.id],
+            sessions: [
+                session(day: 14, minutes: 30),
+                session(day: 15, minutes: 60),
+                session(day: 17, minutes: 120),
+                session(day: 7, minutes: 20),
+                session(day: 8, minutes: 20),
+                session(day: 9, minutes: 20),
+                session(day: 10, minutes: 200)
+            ],
+            devices: [phone],
+            calendar: calendar
+        )
+
+        #expect(analysis.currentMinutes == 90)
+        #expect(analysis.previousMinutes == 60)
+        #expect(analysis.dailyAverageMinutes == 30)
+        #expect(analysis.changePercent == 50)
+        #expect(analysis.dailyPoints.count == 3)
+        #expect(analysis.devicePoints.first?.minutes == 90)
+    }
+
+    @Test("Analysis device breakdown is ordered by usage")
+    func ordersAnalysisDeviceBreakdown() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let now = calendar.date(from: DateComponents(year: 2026, month: 9, day: 13, hour: 12))!
+        let child = ChildProfile(name: "Sam")
+        let phone = Device(name: "Phone", kind: .phone, child: child)
+        let tv = Device(name: "TV", kind: .television, child: child)
+        let start = calendar.date(from: DateComponents(year: 2026, month: 9, day: 13, hour: 9))!
+        let analysis = AnalysisCalculator.analyze(
+            period: .month,
+            now: now,
+            childIDs: [child.id],
+            sessions: [
+                UsageSession(startedAt: start, endedAt: start.addingTimeInterval(20 * 60), child: child, device: phone),
+                UsageSession(startedAt: start.addingTimeInterval(2 * 60 * 60), endedAt: start.addingTimeInterval(2 * 60 * 60 + 40 * 60), child: child, device: tv)
+            ],
+            devices: [phone, tv],
+            calendar: calendar
+        )
+
+        #expect(analysis.devicePoints.map(\.name) == ["TV", "Phone"])
     }
 }

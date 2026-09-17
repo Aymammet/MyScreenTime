@@ -70,7 +70,10 @@ struct UsageEntryView: View {
                 Section("Usage") {
                     Picker("Device", selection: $selectedDeviceID) {
                         ForEach(devices) { device in
-                            Label(device.name, systemImage: device.kind.systemImage)
+                            Label(
+                                device.isShared ? "\(device.name) (Shared)" : device.name,
+                                systemImage: device.kind.systemImage
+                            )
                                 .tag(device.id)
                         }
                     }

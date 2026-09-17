@@ -20,7 +20,8 @@ struct StartTimerView: View {
                 Section("Device") {
                     Picker("Device", selection: $selectedDeviceID) {
                         ForEach(devices) { device in
-                            Text(device.name).tag(Optional(device.id))
+                            Text(device.isShared ? "\(device.name) (Shared)" : device.name)
+                                .tag(Optional(device.id))
                         }
                     }
                     .accessibilityIdentifier("timer-device-picker")

@@ -42,6 +42,7 @@ final class Device {
     @Attribute(.unique) var id: UUID
     var name: String
     var kindRawValue: String
+    var isShared: Bool = false
     var isActive: Bool
     var createdAt: Date
     var updatedAt: Date
@@ -58,6 +59,7 @@ final class Device {
         id: UUID = UUID(),
         name: String,
         kind: Kind,
+        isShared: Bool = false,
         isActive: Bool = true,
         createdAt: Date = .now,
         updatedAt: Date = .now,
@@ -67,11 +69,16 @@ final class Device {
         self.id = id
         self.name = Self.normalizedName(name)
         self.kindRawValue = kind.rawValue
+        self.isShared = isShared
         self.isActive = isActive
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.child = child
         self.usageSessions = usageSessions
+    }
+
+    func isAvailable(to childID: UUID) -> Bool {
+        isShared || child?.id == childID
     }
 
     static func normalizedName(_ name: String) -> String {

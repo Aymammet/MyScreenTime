@@ -25,6 +25,8 @@ After setup, add a child and choose one limit for every day or separate weekday 
 
 The main dashboard also shows today's usage, this week's total and daily average, and this month's total and daily average. Use **Start timer** on a child row to select a device and duration. While running, the compact child card shows the countdown on the right, a **Stop timer** action beneath it, and session progress along the bottom. Stopping early records elapsed time and cancels the pending completion notification. The timer survives app restarts, sends a local notification when it ends, and adds the completed duration to the child's usage automatically when the app is active or next opened.
 
+Open **View detailed analysis** from the dashboard to switch between week and month views. The screen includes a daily trend chart, device breakdown chart, daily average, previous-period total, and percentage comparison. In-progress weeks and months are compared with the same number of elapsed days in the preceding period.
+
 Open **Settings** and select a child to edit their name, choose or remove a profile photo, update their limits, and review that child's usage for today, this week, and this month. Profile photos are resized before being stored locally and appear on the main dashboard and child detail screen.
 
 No external packages, environment variables, or database are required.
@@ -34,7 +36,7 @@ No external packages, environment variables, or database are required.
 Press **Test** (`⌘U`) to run:
 
 - Three unit tests for usage-duration calculations
-- Seventeen tests for persistence, profile photos, overlap detection, aggregation, analysis periods, time zones, limits, and timers
+- Nineteen tests for persistence, profile photos, overlap detection, aggregation, analysis periods and boundaries, device breakdowns, time zones, limits, and timers
 - One UI test covering setup, overlap rejection, usage editing, and confirmed deletion
 
 ## Command-line verification

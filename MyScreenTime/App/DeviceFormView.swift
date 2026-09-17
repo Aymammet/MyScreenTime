@@ -11,6 +11,7 @@ struct DeviceFormView: View {
 
     @State private var name: String
     @State private var kind: Device.Kind
+    @State private var isShared: Bool
     @State private var saveErrorMessage: String?
 
     init(child: ChildProfile, device: Device? = nil) {
@@ -18,6 +19,7 @@ struct DeviceFormView: View {
         self.device = device
         _name = State(initialValue: device?.name ?? "")
         _kind = State(initialValue: device?.kind ?? .phone)
+        _isShared = State(initialValue: device?.isShared ?? false)
     }
 
     private var normalizedName: String {
@@ -26,8 +28,8 @@ struct DeviceFormView: View {
 
     private var hasDuplicateName: Bool {
         allDevices.contains { candidate in
-            candidate.child?.id == child.id
-                && candidate.id != device?.id
+            candidate.id != device?.id
+                && (isShared ? candidate.isShared : (!candidate.isShared && candidate.child?.id == child.id))
                 && candidate.name.localizedCaseInsensitiveCompare(normalizedName) == .orderedSame
         }
     }
@@ -57,6 +59,19 @@ struct DeviceFormView: View {
                         }
                     }
                     .accessibilityIdentifier("device-kind-picker")
+
+                    Toggle("Shared household device", isOn: $isShared)
+                        .accessibilityIdentifier("shared-device-toggle")
+                }
+
+                Section {
+                    Text(
+                        isShared
+                            ? "Everyone in the family can select this device. Each usage session is still assigned to the child who used it."
+                            : "This device is assigned only to \(child.name)."
+                    )
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
                 }
             }
             .navigationTitle(device == nil ? "Add Device" : "Edit Device")
@@ -102,13 +117,16 @@ struct DeviceFormView: View {
         if let device {
             device.name = normalizedName
             device.kind = kind
+            device.isShared = isShared
+            device.child = isShared ? nil : child
             device.updatedAt = .now
         } else {
             modelContext.insert(
                 Device(
                     name: normalizedName,
                     kind: kind,
-                    child: child
+                    isShared: isShared,
+                    child: isShared ? nil : child
                 )
             )
         }

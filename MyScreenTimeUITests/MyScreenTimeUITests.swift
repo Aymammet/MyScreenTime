@@ -21,6 +21,15 @@ final class MyScreenTimeUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["MyScreenTime"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Welcome, Alex"].exists)
 
+        for tab in ["weekly", "monthly", "devices", "children"] {
+            app.buttons["analysis-\(tab)-tab"].tap()
+            XCTAssertTrue(app.navigationBars[tab.capitalized].waitForExistence(timeout: 5))
+            app.swipeUp()
+            XCTAssertTrue(app.descendants(matching: .any)["daily-insights-empty"].waitForExistence(timeout: 5))
+        }
+        app.buttons["analysis-home-tab"].tap()
+        XCTAssertTrue(app.navigationBars["MyScreenTime"].waitForExistence(timeout: 5))
+
         app.buttons["add-child-button"].tap()
         XCTAssertTrue(app.navigationBars["Add Child"].waitForExistence(timeout: 5))
 
@@ -30,7 +39,9 @@ final class MyScreenTimeUITests: XCTestCase {
         app.buttons["save-child-profile"].tap()
 
         XCTAssertTrue(app.staticTexts["Sam"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["0 min used • 2 hr remaining"].exists)
+        XCTAssertTrue(app.staticTexts["0 min used"].exists)
+        XCTAssertTrue(app.staticTexts["2 hr remaining"].exists)
+        XCTAssertTrue(app.staticTexts["2 hr daily limit"].exists)
 
         app.staticTexts["Sam"].tap()
         XCTAssertTrue(app.navigationBars["Sam"].waitForExistence(timeout: 5))

@@ -84,6 +84,22 @@ enum UsageAggregator {
             .reduce(0) { $0 + $1.durationMinutes }
     }
 
+    static func totalMinutes(
+        on day: Date,
+        childID: UUID,
+        deviceID: UUID,
+        sessions: [UsageSession],
+        calendar: Calendar = .current
+    ) -> Int {
+        sessions
+            .filter { session in
+                session.child?.id == childID
+                    && session.device?.id == deviceID
+                    && calendar.isDate(session.startedAt, inSameDayAs: day)
+            }
+            .reduce(0) { $0 + $1.durationMinutes }
+    }
+
     static func summary(
         on day: Date,
         child: ChildProfile,

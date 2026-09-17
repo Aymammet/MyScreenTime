@@ -68,8 +68,6 @@ struct ContentView: View {
                     }
                 }
 
-                analysisSections
-
                 if !archivedChildren.isEmpty {
                     Section("Archived") {
                         ForEach(archivedChildren) { child in
@@ -112,7 +110,7 @@ struct ContentView: View {
                 if let childForTimer {
                     StartTimerView(
                         child: childForTimer,
-                        devices: allDevices.filter { $0.child?.id == childForTimer.id && $0.isActive }
+                        devices: allDevices.filter { $0.isActive && $0.isAvailable(to: childForTimer.id) }
                     ) { device, minutes in
                         timerManager.start(child: childForTimer, device: device, minutes: minutes)
                     }
@@ -202,10 +200,6 @@ struct ContentView: View {
                                         Text("\(activeTimer.deviceName) • running")
                                             .font(.subheadline)
                                             .foregroundStyle(.secondary)
-                                    } else {
-                                        Text(summary.statusText)
-                                            .font(.subheadline)
-                                            .foregroundStyle(statusColor(for: summary.status))
                                     }
                                 }
                             }
@@ -218,6 +212,11 @@ struct ContentView: View {
                             VStack(alignment: .trailing, spacing: 4) {
                                 Text(remainingTime(until: activeTimer.endsAt, now: timeline.date))
                                     .font(.title2.bold().monospacedDigit())
+
+                                Text("\(activeTimer.durationMinutes) min session")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+
                                 Button("Stop timer", systemImage: "stop.circle") {
                                     timerManager.stop(
                                         activeTimer,
@@ -241,63 +240,48 @@ struct ContentView: View {
                         }
                     }
 
-                    if let activeTimer {
-                        ProgressView(value: timerProgress(activeTimer, now: timeline.date))
-                            .tint(AppTheme.primary)
-                            .accessibilityLabel("Timer progress")
-                        Text("\(activeTimer.durationMinutes) min session")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    } else {
-                        ProgressView(value: summary.progress)
-                            .tint(statusColor(for: summary.status))
-                            .accessibilityLabel("Daily screen-time progress")
-                            .accessibilityValue("\(summary.usedMinutes) of \(summary.limitMinutes) minutes")
-                    }
+                    dailyUsageFooter(summary)
                 }
             }
         }
     }
 
-    private var analysisSections: some View {
-        let childIDs = Set(activeChildren.map(\.id))
-        let calendar = Calendar.current
-        let now = Date.now
-        let today = calendar.dateInterval(of: .day, for: now)!
-        let week = calendar.dateInterval(of: .weekOfYear, for: now)!
-        let month = calendar.dateInterval(of: .month, for: now)!
-        let todayTotal = UsageAggregator.totalMinutes(in: today, childIDs: childIDs, sessions: allUsageSessions)
-        let weekTotal = UsageAggregator.totalMinutes(in: week, childIDs: childIDs, sessions: allUsageSessions)
-        let monthTotal = UsageAggregator.totalMinutes(in: month, childIDs: childIDs, sessions: allUsageSessions)
-        let weekDays = max(calendar.dateComponents([.day], from: week.start, to: now).day.map { $0 + 1 } ?? 1, 1)
-        let monthDays = max(calendar.dateComponents([.day], from: month.start, to: now).day.map { $0 + 1 } ?? 1, 1)
+    private func dailyUsageFooter(_ summary: DailyUsageSummary) -> some View {
+        VStack(spacing: 5) {
+            HStack {
+                Text("\(UsageAggregator.format(minutes: summary.usedMinutes)) used")
+                    .foregroundStyle(.secondary)
 
-        return Group {
-            Section("Daily usage") {
-                analysisRow("Today", value: UsageAggregator.format(minutes: todayTotal), icon: "sun.max")
+                Spacer()
+
+                Text(remainingLabel(for: summary))
+                    .foregroundStyle(summary.overMinutes > 0 ? AppTheme.danger : AppTheme.primary)
             }
-            Section("Weekly usage") {
-                analysisRow("This week", value: UsageAggregator.format(minutes: weekTotal), icon: "calendar.badge.clock")
-                analysisRow("Daily average", value: UsageAggregator.format(minutes: weekTotal / weekDays), icon: "chart.bar")
-            }
-            Section("Monthly usage") {
-                analysisRow("This month", value: UsageAggregator.format(minutes: monthTotal), icon: "calendar")
-                analysisRow("Daily average", value: UsageAggregator.format(minutes: monthTotal / monthDays), icon: "chart.line.uptrend.xyaxis")
-            }
+            .font(.caption.weight(.medium))
+
+            ProgressView(value: summary.progress)
+                .tint(summary.overMinutes > 0 ? AppTheme.danger : AppTheme.primary)
+                .accessibilityLabel("Daily screen-time progress")
+                .accessibilityValue("\(summary.usedMinutes) of \(summary.limitMinutes) minutes")
+
+            Text("\(UsageAggregator.format(minutes: summary.limitMinutes)) daily limit")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
         }
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .contain)
     }
 
-    private func analysisRow(_ title: String, value: String, icon: String) -> some View {
-        LabeledContent {
-            Text(value).font(.headline.monospacedDigit())
-        } label: {
-            Label(title, systemImage: icon)
+    private func remainingLabel(for summary: DailyUsageSummary) -> String {
+        if summary.overMinutes > 0 {
+            return "\(UsageAggregator.format(minutes: summary.overMinutes)) over"
         }
+
+        return "\(UsageAggregator.format(minutes: summary.remainingMinutes)) remaining"
     }
 
     private func activeDevices(for child: ChildProfile) -> [Device] {
-        allDevices.filter { $0.child?.id == child.id && $0.isActive }
+        allDevices.filter { $0.isActive && $0.isAvailable(to: child.id) }
     }
 
     private func remainingTime(until end: Date, now: Date) -> String {
