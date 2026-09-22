@@ -38,6 +38,23 @@ struct DailyUsageSummary: Equatable {
 
         return "\(UsageAggregator.format(minutes: usedMinutes)) used • \(UsageAggregator.format(minutes: remainingMinutes)) remaining"
     }
+
+    /// A short, human status headline used above progress rings on the dashboard and child detail screens.
+    var headline: String {
+        switch status {
+        case .normal: "On track today"
+        case .nearLimit: "Near limit"
+        case .reached: "Limit reached"
+        case .exceeded: "\(UsageAggregator.format(minutes: overMinutes)) over limit"
+        }
+    }
+
+    /// A compact "N min left" / "N min over" label used next to progress rings.
+    var remainingHeadline: String {
+        overMinutes > 0
+            ? "\(UsageAggregator.format(minutes: overMinutes)) over"
+            : "\(UsageAggregator.format(minutes: remainingMinutes)) left"
+    }
 }
 
 enum UsageAggregator {

@@ -31,32 +31,29 @@ struct ChildDetailView: View {
         UsageAggregator.summary(on: .now, child: child, sessions: allUsageSessions)
     }
 
+    private var deviceUsageToday: [(device: Device, minutes: Int)] {
+        activeDevices
+            .map { device in
+                (
+                    device: device,
+                    minutes: UsageAggregator.totalMinutes(
+                        on: .now,
+                        childID: child.id,
+                        deviceID: device.id,
+                        sessions: allUsageSessions
+                    )
+                )
+            }
+            .filter { $0.minutes > 0 }
+            .sorted { $0.minutes > $1.minutes }
+    }
+
     var body: some View {
         List {
             Section {
-                HStack(spacing: 14) {
-                    ChildAvatarView(child: child, size: 56)
-                    Text(child.name).font(.title2.bold())
-                }
-            }
-            Section("Today") {
-                LabeledContent("Used", value: UsageAggregator.format(minutes: todaySummary.usedMinutes))
-                    .accessibilityIdentifier("today-used-total")
-
-                if todaySummary.overMinutes > 0 {
-                    LabeledContent("Over limit", value: UsageAggregator.format(minutes: todaySummary.overMinutes))
-                        .foregroundStyle(AppTheme.danger)
-                        .accessibilityIdentifier("today-limit-balance")
-                } else {
-                    LabeledContent("Remaining", value: UsageAggregator.format(minutes: todaySummary.remainingMinutes))
-                        .accessibilityIdentifier("today-limit-balance")
-                }
-
-                ProgressView(value: todaySummary.progress) {
-                    Text("Today's limit: \(child.formattedLimit(on: .now))")
-                }
-                .tint(statusColor(for: todaySummary.status))
-                .accessibilityValue("\(todaySummary.usedMinutes) of \(todaySummary.limitMinutes) minutes")
+                heroCard
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
             }
 
             Section("Devices") {
@@ -72,6 +69,11 @@ struct ChildDetailView: View {
                     }
                     .accessibilityIdentifier("add-device-button")
                 } else {
+                    if deviceUsageToday.count > 1 {
+                        deviceProportionBar
+                            .listRowSeparator(.hidden)
+                    }
+
                     ForEach(activeDevices) { device in
                         deviceRow(device)
                             .contentShape(Rectangle())
@@ -141,10 +143,18 @@ struct ChildDetailView: View {
                     }
                 }
 
-                Button("Record screen time", systemImage: "plus.circle.fill") {
+                Button {
                     isAddingUsage = true
+                } label: {
+                    Label("Record screen time", systemImage: "plus.circle.fill")
+                        .font(.subheadline.weight(.bold))
+                        .frame(maxWidth: .infinity)
                 }
+                .buttonStyle(.borderedProminent)
+                .tint(AppTheme.primary)
+                .controlSize(.large)
                 .disabled(activeDevices.isEmpty)
+                .listRowBackground(Color.clear)
                 .accessibilityIdentifier("add-usage-button")
 
                 if activeDevices.isEmpty {
@@ -154,14 +164,11 @@ struct ChildDetailView: View {
                 }
             }
         }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .background(AppTheme.background)
+        .contentMargins(.bottom, 100, for: .scrollContent)
         .navigationTitle(child.name)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button("Add device", systemImage: "plus") {
-                    isAddingDevice = true
-                }
-            }
-        }
         .sheet(isPresented: $isAddingDevice) {
             DeviceFormView(child: child)
         }
@@ -229,6 +236,70 @@ struct ChildDetailView: View {
         .tint(AppTheme.primary)
     }
 
+    private var heroCard: some View {
+        let statusColor = AppTheme.statusColor(for: todaySummary.status)
+
+        return VStack(spacing: 14) {
+            HStack(spacing: 12) {
+                ChildAvatarView(child: child, size: 48)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(child.name)
+                        .font(.title3.bold())
+                    Text(todaySummary.headline)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(statusColor)
+                }
+                Spacer()
+            }
+
+            ZStack {
+                RingProgressView(progress: todaySummary.progress, color: statusColor, size: 116, lineWidth: 10)
+                VStack(spacing: 2) {
+                    Text("\(todaySummary.usedMinutes)")
+                        .font(.system(size: 30, weight: .bold))
+                        .accessibilityIdentifier("today-used-total")
+                    Text("of \(todaySummary.limitMinutes) min")
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.textSecondary)
+                }
+            }
+            .padding(.vertical, 4)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Today's screen-time progress")
+            .accessibilityValue("\(todaySummary.usedMinutes) of \(todaySummary.limitMinutes) minutes")
+
+            Text(todaySummary.remainingHeadline.appending(" today"))
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(statusColor)
+                .accessibilityIdentifier("today-limit-balance")
+
+            Text("\(child.formattedLimit(on: .now)) limit today")
+                .font(.caption)
+                .foregroundStyle(AppTheme.textTertiary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(22)
+        .background(AppTheme.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .shadow(color: .black.opacity(0.04), radius: 2, y: 1)
+    }
+
+    private var deviceProportionBar: some View {
+        let entries = deviceUsageToday
+        let total = max(entries.reduce(0) { $0 + $1.minutes }, 1)
+
+        return GeometryReader { geometry in
+            HStack(spacing: 3) {
+                ForEach(entries, id: \.device.id) { entry in
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(AppTheme.color(forDeviceID: entry.device.id))
+                        .frame(width: max(geometry.size.width * CGFloat(entry.minutes) / CGFloat(total) - 3, 4))
+                }
+            }
+        }
+        .frame(height: 10)
+        .accessibilityHidden(true)
+    }
+
     private func deviceRow(_ device: Device) -> some View {
         let usedToday = UsageAggregator.totalMinutes(
             on: .now,
@@ -236,12 +307,14 @@ struct ChildDetailView: View {
             deviceID: device.id,
             sessions: allUsageSessions
         )
+        let deviceColor = AppTheme.color(forDeviceID: device.id)
 
         return HStack(spacing: 14) {
             Image(systemName: device.kind.systemImage)
-                .font(.title2)
-                .frame(width: 34)
-                .foregroundStyle(AppTheme.primary)
+                .font(.title3)
+                .foregroundStyle(deviceColor)
+                .frame(width: 36, height: 36)
+                .background(deviceColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 3) {
@@ -274,10 +347,14 @@ struct ChildDetailView: View {
     }
 
     private func usageRow(_ session: UsageSession) -> some View {
-        HStack(spacing: 12) {
+        let deviceColor = session.device.map { AppTheme.color(forDeviceID: $0.id) } ?? AppTheme.textTertiary
+
+        return HStack(spacing: 12) {
             Image(systemName: session.device?.kind.systemImage ?? "display")
-                .frame(width: 28)
-                .foregroundStyle(AppTheme.primary)
+                .font(.subheadline)
+                .foregroundStyle(deviceColor)
+                .frame(width: 32, height: 32)
+                .background(deviceColor.opacity(0.12), in: Circle())
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 3) {
@@ -308,14 +385,6 @@ struct ChildDetailView: View {
         modelContext.delete(session)
         try? modelContext.save()
         sessionToDelete = nil
-    }
-
-    private func statusColor(for status: DailyLimitStatus) -> Color {
-        switch status {
-        case .normal: AppTheme.success
-        case .nearLimit, .reached: AppTheme.warning
-        case .exceeded: AppTheme.danger
-        }
     }
 }
 

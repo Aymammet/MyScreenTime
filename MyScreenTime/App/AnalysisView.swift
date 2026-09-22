@@ -3,8 +3,7 @@ import SwiftUI
 
 enum AnalysisDestination: String, CaseIterable, Identifiable {
     case home = "Home"
-    case weekly = "Weekly"
-    case monthly = "Monthly"
+    case analytics = "Analytics"
     case devices = "Devices"
     case children = "Children"
 
@@ -13,12 +12,21 @@ enum AnalysisDestination: String, CaseIterable, Identifiable {
     var systemImage: String {
         switch self {
         case .home: "house.fill"
-        case .weekly: "chart.bar.fill"
-        case .monthly: "calendar"
+        case .analytics: "chart.xyaxis.line"
         case .devices: "display.2"
         case .children: "person.2.fill"
         }
     }
+}
+
+/// The time range shown within the combined Analytics tab. Weekly and Monthly used
+/// to be separate bottom-nav tabs; they're now one tab with this in-page switch so
+/// the nav bar stays simple.
+enum AnalyticsScope: String, CaseIterable, Identifiable {
+    case weekly = "Weekly"
+    case monthly = "Monthly"
+
+    var id: String { rawValue }
 }
 
 struct AnalysisView: View {
@@ -28,10 +36,21 @@ struct AnalysisView: View {
     let destination: AnalysisDestination
 
     @State private var period: AnalysisPeriod = .week
+    @State private var analyticsScope: AnalyticsScope = .weekly
 
     private var weeklyAnalysis: PeriodAnalysis {
         AnalysisCalculator.analyze(
             period: .week,
+            now: .now,
+            childIDs: Set(children.filter(\.isActive).map(\.id)),
+            sessions: sessions,
+            devices: devices
+        )
+    }
+
+    private var monthlyAnalysis: PeriodAnalysis {
+        AnalysisCalculator.analyze(
+            period: .month,
             now: .now,
             childIDs: Set(children.filter(\.isActive).map(\.id)),
             sessions: sessions,
@@ -49,65 +68,66 @@ struct AnalysisView: View {
     @ViewBuilder
     private var selectedAnalysis: some View {
         switch destination {
-        case .home: weeklyAnalysisTab
-        case .weekly: weeklyAnalysisTab
-        case .monthly: monthlyAnalysisTab
+        case .home: analyticsTab
+        case .analytics: analyticsTab
         case .devices: deviceAnalysisTab
         case .children: childAnalysisTab
         }
     }
 
-    private var weeklyAnalysisTab: some View {
+    private var analyticsTab: some View {
         List {
-            Section("This week") {
-                LabeledContent("Total", value: UsageAggregator.format(minutes: weeklyAnalysis.currentMinutes))
-                LabeledContent("Daily average", value: UsageAggregator.format(minutes: weeklyAnalysis.dailyAverageMinutes))
-                LabeledContent("Previous week", value: UsageAggregator.format(minutes: weeklyAnalysis.previousMinutes))
-                comparisonRow(for: weeklyAnalysis)
+            Section {
+                Picker("Analytics range", selection: $analyticsScope) {
+                    ForEach(AnalyticsScope.allCases) { scope in
+                        Text(scope.rawValue).tag(scope)
+                    }
+                }
+                .pickerStyle(.segmented)
+            }
+            .listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 0))
+            .listRowBackground(Color.clear)
+
+            switch analyticsScope {
+            case .weekly:
+                Section {
+                    statTilesRow(for: weeklyAnalysis, totalLabel: "Week total")
+                }
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
+
+                Section {
+                    trendCard
+                }
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
+
+                Section {
+                    deviceBreakdownCard(for: weeklyAnalysis)
+                }
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
+            case .monthly:
+                Section {
+                    statTilesRow(for: monthlyAnalysis, totalLabel: "Month total")
+                }
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
+
+                Section {
+                    monthlyTrendCard(monthlyAnalysis)
+                }
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
             }
 
-            Section("Usage trend") {
-                if weeklyAnalysis.dailyPoints.allSatisfy({ $0.minutes == 0 }) {
-                    emptyChart("No usage recorded this week yet.")
-                } else {
-                    Chart(weeklyAnalysis.dailyPoints) { point in
-                        BarMark(
-                            x: .value("Date", point.date, unit: .day),
-                            y: .value("Minutes", point.minutes)
-                        )
-                        .foregroundStyle(AppTheme.primary.gradient)
-                        .cornerRadius(4)
-                    }
-                    .chartYAxisLabel("Minutes")
-                    .chartXAxis {
-                        AxisMarks(values: .automatic(desiredCount: 7)) {
-                            AxisValueLabel(format: .dateTime.weekday(.abbreviated))
-                        }
-                    }
-                    .frame(height: 220)
-                    .accessibilityIdentifier("usage-trend-chart")
-                }
-            }
-
-            Section("Device breakdown") {
-                if weeklyAnalysis.devicePoints.isEmpty {
-                    emptyChart("Device usage will appear after a session is recorded.")
-                } else {
-                    Chart(weeklyAnalysis.devicePoints) { point in
-                        BarMark(
-                            x: .value("Minutes", point.minutes),
-                            y: .value("Device", point.name)
-                        )
-                        .foregroundStyle(by: .value("Device", point.name))
-                        .cornerRadius(4)
-                    }
-                    .chartLegend(.hidden)
-                    .frame(height: max(CGFloat(weeklyAnalysis.devicePoints.count) * 48, 150))
-                    .accessibilityIdentifier("device-breakdown-chart")
-                }
-            }
             DailyInsightsSection()
         }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .background(AppTheme.background)
+        .contentMargins(.bottom, 100, for: .scrollContent)
+        .animation(.easeInOut(duration: 0.25), value: analyticsScope)
     }
 
     private var childAnalysisTab: some View {
@@ -123,33 +143,47 @@ struct AnalysisView: View {
             } else {
                 ForEach(activeChildren) { child in
                     Section {
-                        let childAnalysis = analysis(for: child)
-                        analysisCard(
-                            title: "All screen time",
-                            icon: "person.crop.circle.fill",
-                            analysis: childAnalysis
-                        )
+                        VStack(spacing: 12) {
+                            let childAnalysis = analysis(for: child)
+                            analysisCard(
+                                title: "All screen time",
+                                icon: "person.crop.circle.fill",
+                                analysis: childAnalysis
+                            )
 
-                        let childDevices = devicesAvailable(to: child)
-                        if childDevices.isEmpty {
-                            Text("No devices available for this child.")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        } else {
-                            ForEach(childDevices) { device in
-                                childDeviceAnalysisRow(device, child: child)
+                            let childDevices = devicesAvailable(to: child)
+                            if childDevices.isEmpty {
+                                Text("No devices available for this child.")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            } else {
+                                VStack(spacing: 10) {
+                                    ForEach(childDevices) { device in
+                                        childDeviceAnalysisRow(device, child: child)
+                                    }
+                                }
                             }
                         }
+                        .padding(18)
+                        .background(AppTheme.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                        .shadow(color: .black.opacity(0.04), radius: 2, y: 1)
                     } header: {
                         HStack(spacing: 8) {
                             ChildAvatarView(child: child, size: 28)
                             Text(child.name)
                         }
                     }
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
                 }
             }
             DailyInsightsSection()
         }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .background(AppTheme.background)
+        .contentMargins(.bottom, 100, for: .scrollContent)
     }
 
     private var deviceAnalysisTab: some View {
@@ -170,55 +204,197 @@ struct AnalysisView: View {
                             title: device.name,
                             subtitle: device.isShared ? "Shared household" : device.child?.name,
                             icon: device.kind.systemImage,
+                            iconColor: AppTheme.color(forDeviceID: device.id),
                             analysis: deviceAnalysis
                         )
+                        .padding(18)
+                        .background(AppTheme.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                        .shadow(color: .black.opacity(0.04), radius: 2, y: 1)
+                        .listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 0))
+                        .listRowBackground(Color.clear)
                     }
                 }
             }
             DailyInsightsSection()
+        }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .background(AppTheme.background)
+        .contentMargins(.bottom, 100, for: .scrollContent)
+    }
+
+    // MARK: - Cards
+
+    private func statTilesRow(for analysis: PeriodAnalysis, totalLabel: String) -> some View {
+        HStack(spacing: 10) {
+            statTile(icon: "clock", value: UsageAggregator.format(minutes: analysis.dailyAverageMinutes), label: "Daily avg")
+            statTile(icon: "chart.bar.fill", value: UsageAggregator.format(minutes: analysis.currentMinutes), label: totalLabel)
+            changeTile(for: analysis)
         }
     }
 
-    private var monthlyAnalysisTab: some View {
-        let monthly = AnalysisCalculator.analyze(
-            period: .month,
-            now: .now,
-            childIDs: Set(activeChildren.map(\.id)),
-            sessions: sessions,
-            devices: devices
-        )
-
-        return List {
-            Section("This month") {
-                LabeledContent("Total", value: UsageAggregator.format(minutes: monthly.currentMinutes))
-                LabeledContent("Daily average", value: UsageAggregator.format(minutes: monthly.dailyAverageMinutes))
-                LabeledContent("Previous month", value: UsageAggregator.format(minutes: monthly.previousMinutes))
-                comparisonRow(for: monthly)
-            }
-
-            Section("Daily usage") {
-                if monthly.dailyPoints.allSatisfy({ $0.minutes == 0 }) {
-                    emptyChart("No usage recorded this month yet.")
-                } else {
-                    Chart(monthly.dailyPoints) { point in
-                        LineMark(
-                            x: .value("Date", point.date, unit: .day),
-                            y: .value("Minutes", point.minutes)
-                        )
-                        .foregroundStyle(AppTheme.primary)
-
-                        AreaMark(
-                            x: .value("Date", point.date, unit: .day),
-                            y: .value("Minutes", point.minutes)
-                        )
-                        .foregroundStyle(AppTheme.primary.opacity(0.15))
-                    }
-                    .chartYAxisLabel("Minutes")
-                    .frame(height: 220)
-                }
-            }
-            DailyInsightsSection()
+    private func statTile(icon: String, value: String, label: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Image(systemName: icon)
+                .font(.subheadline)
+                .foregroundStyle(AppTheme.textTertiary)
+            Text(value)
+                .font(.system(size: 17, weight: .bold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            Text(label)
+                .font(.system(size: 10.5, weight: .semibold))
+                .foregroundStyle(AppTheme.textSecondary)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .background(AppTheme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    private func changeTile(for analysis: PeriodAnalysis) -> some View {
+        let change = analysis.changePercent
+        let isHigher = (change ?? 0) > 0
+        let isLower = (change ?? 0) < 0
+        let color: Color = change == nil ? AppTheme.textSecondary : (isHigher ? AppTheme.warning : (isLower ? AppTheme.success : AppTheme.textSecondary))
+        let icon = change == nil ? "minus" : (isHigher ? "arrow.up.right" : (isLower ? "arrow.down.right" : "equal"))
+        let valueText = change.map { "\(abs($0))%" } ?? "—"
+        let label = change == nil ? "No comparison" : (isHigher ? "Above last time" : (isLower ? "Below last time" : "Same as before"))
+
+        return VStack(alignment: .leading, spacing: 8) {
+            Image(systemName: icon)
+                .font(.subheadline)
+                .foregroundStyle(color)
+            Text(valueText)
+                .font(.system(size: 17, weight: .bold))
+                .foregroundStyle(color)
+            Text(label)
+                .font(.system(size: 10.5, weight: .semibold))
+                .foregroundStyle(AppTheme.textSecondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .background(AppTheme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    private var trendCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Text("Usage trend")
+                    .font(.subheadline.weight(.bold))
+                Spacer()
+                changeBadge(for: weeklyAnalysis)
+            }
+
+            if weeklyAnalysis.dailyPoints.allSatisfy({ $0.minutes == 0 }) {
+                emptyChart("No usage recorded this week yet.")
+            } else {
+                Chart(weeklyAnalysis.dailyPoints) { point in
+                    BarMark(
+                        x: .value("Date", point.date, unit: .day),
+                        y: .value("Minutes", point.minutes)
+                    )
+                    .foregroundStyle(isToday(point.date) ? AppTheme.primary : AppTheme.primary.opacity(0.28))
+                    .cornerRadius(4)
+                }
+                .chartYAxisLabel("Minutes")
+                .chartXAxis {
+                    AxisMarks(values: .automatic(desiredCount: 7)) {
+                        AxisValueLabel(format: .dateTime.weekday(.abbreviated))
+                    }
+                }
+                .frame(height: 200)
+                .accessibilityIdentifier("usage-trend-chart")
+            }
+        }
+        .padding(18)
+        .background(AppTheme.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .shadow(color: .black.opacity(0.04), radius: 2, y: 1)
+    }
+
+    private func monthlyTrendCard(_ monthly: PeriodAnalysis) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Text("Daily usage")
+                    .font(.subheadline.weight(.bold))
+                Spacer()
+                changeBadge(for: monthly)
+            }
+
+            if monthly.dailyPoints.allSatisfy({ $0.minutes == 0 }) {
+                emptyChart("No usage recorded this month yet.")
+            } else {
+                Chart(monthly.dailyPoints) { point in
+                    LineMark(
+                        x: .value("Date", point.date, unit: .day),
+                        y: .value("Minutes", point.minutes)
+                    )
+                    .foregroundStyle(AppTheme.primary)
+
+                    AreaMark(
+                        x: .value("Date", point.date, unit: .day),
+                        y: .value("Minutes", point.minutes)
+                    )
+                    .foregroundStyle(AppTheme.primary.opacity(0.15))
+                }
+                .chartYAxisLabel("Minutes")
+                .frame(height: 200)
+            }
+        }
+        .padding(18)
+        .background(AppTheme.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .shadow(color: .black.opacity(0.04), radius: 2, y: 1)
+    }
+
+    private func deviceBreakdownCard(for analysis: PeriodAnalysis) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("By device")
+                .font(.subheadline.weight(.bold))
+
+            if analysis.devicePoints.isEmpty {
+                emptyChart("Device usage will appear after a session is recorded.")
+            } else {
+                Chart(analysis.devicePoints) { point in
+                    BarMark(
+                        x: .value("Minutes", point.minutes),
+                        y: .value("Device", point.name)
+                    )
+                    .foregroundStyle(AppTheme.color(forDeviceID: point.deviceID))
+                    .cornerRadius(4)
+                }
+                .chartLegend(.hidden)
+                .frame(height: max(CGFloat(analysis.devicePoints.count) * 44, 120))
+                .accessibilityIdentifier("device-breakdown-chart")
+            }
+        }
+        .padding(18)
+        .background(AppTheme.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .shadow(color: .black.opacity(0.04), radius: 2, y: 1)
+    }
+
+    private func changeBadge(for analysis: PeriodAnalysis) -> some View {
+        Group {
+            if let change = analysis.changePercent {
+                let isHigher = change > 0
+                let isLower = change < 0
+                let color = isHigher ? AppTheme.warning : (isLower ? AppTheme.success : AppTheme.textSecondary)
+                let tint = isHigher ? AppTheme.warningTint : (isLower ? AppTheme.successTint : AppTheme.background)
+                Label(
+                    "\(abs(change))% \(isHigher ? "above" : isLower ? "below" : "same as") last time",
+                    systemImage: isHigher ? "arrow.up.right" : isLower ? "arrow.down.right" : "equal"
+                )
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(color)
+                .padding(.horizontal, 9)
+                .padding(.vertical, 4)
+                .background(tint, in: Capsule())
+            }
+        }
+    }
+
+    private func isToday(_ date: Date) -> Bool {
+        Calendar.current.isDateInToday(date)
     }
 
     private var periodPicker: some View {
@@ -230,6 +406,7 @@ struct AnalysisView: View {
             }
             .pickerStyle(.segmented)
         }
+        .listRowBackground(Color.clear)
     }
 
     private var activeChildren: [ChildProfile] {
@@ -287,12 +464,15 @@ struct AnalysisView: View {
 
     private func childDeviceAnalysisRow(_ device: Device, child: ChildProfile) -> some View {
         let deviceAnalysis = analysis(for: device, child: child)
+        let deviceColor = AppTheme.color(forDeviceID: device.id)
 
         return VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 10) {
                 Image(systemName: device.kind.systemImage)
-                    .foregroundStyle(AppTheme.primary)
-                    .frame(width: 28)
+                    .font(.subheadline)
+                    .foregroundStyle(deviceColor)
+                    .frame(width: 30, height: 30)
+                    .background(deviceColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(device.name)
@@ -316,7 +496,6 @@ struct AnalysisView: View {
             }
             .font(.caption)
         }
-        .padding(.vertical, 4)
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("child-device-analysis-\(child.id.uuidString)-\(device.id.uuidString)")
     }
@@ -325,12 +504,13 @@ struct AnalysisView: View {
         title: String,
         subtitle: String? = nil,
         icon: String,
+        iconColor: Color = AppTheme.primary,
         analysis: PeriodAnalysis
     ) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
                 Image(systemName: icon)
-                    .foregroundStyle(AppTheme.primary)
+                    .foregroundStyle(iconColor)
                     .frame(width: 28)
 
                 VStack(alignment: .leading, spacing: 2) {
@@ -358,20 +538,6 @@ struct AnalysisView: View {
                 compactComparison(for: analysis)
             }
             .font(.caption)
-        }
-        .padding(.vertical, 6)
-    }
-
-    @ViewBuilder
-    private func comparisonRow(for analysis: PeriodAnalysis) -> some View {
-        if let change = analysis.changePercent {
-            let isHigher = change > 0
-            LabeledContent("Change") {
-                Label("\(abs(change))% \(isHigher ? "above" : change < 0 ? "below" : "same as")", systemImage: isHigher ? "arrow.up.right" : change < 0 ? "arrow.down.right" : "equal")
-                    .foregroundStyle(isHigher ? AppTheme.warning : change < 0 ? AppTheme.success : .secondary)
-            }
-        } else {
-            LabeledContent("Change", value: "No previous usage")
         }
     }
 

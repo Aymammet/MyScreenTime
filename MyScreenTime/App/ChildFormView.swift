@@ -14,6 +14,7 @@ struct ChildFormView: View {
     @State private var usesSchedule: Bool
     @State private var weekdayLimitMinutes: Int
     @State private var weekendLimitMinutes: Int
+    @State private var selectedColor: ChildColor
     @State private var saveErrorMessage: String?
 
     init(parent: ParentProfile, child: ChildProfile? = nil) {
@@ -24,6 +25,7 @@ struct ChildFormView: View {
         _usesSchedule = State(initialValue: child?.weekdayLimitMinutes != nil && child?.weekendLimitMinutes != nil)
         _weekdayLimitMinutes = State(initialValue: child?.weekdayLimitMinutes ?? child?.dailyLimitMinutes ?? 120)
         _weekendLimitMinutes = State(initialValue: child?.weekendLimitMinutes ?? child?.dailyLimitMinutes ?? 120)
+        _selectedColor = State(initialValue: child?.color ?? ChildColor.allCases.randomElement() ?? .teal)
     }
 
     private var normalizedName: String {
@@ -64,6 +66,26 @@ struct ChildFormView: View {
                     }
                 } header: {
                     Text("Child profile")
+                }
+
+                Section {
+                    HStack(spacing: 14) {
+                        ZStack {
+                            Circle().fill(selectedColor.color.opacity(0.18))
+                            Text(name.trimmingCharacters(in: .whitespacesAndNewlines).first.map { String($0).uppercased() } ?? "?")
+                                .font(.system(size: 20, weight: .bold))
+                                .foregroundStyle(selectedColor.color)
+                        }
+                        .frame(width: 48, height: 48)
+
+                        ColorSwatchPicker(selection: $selectedColor)
+                    }
+                    .padding(.vertical, 4)
+                    .accessibilityIdentifier("child-color-picker")
+                } header: {
+                    Text("Color")
+                } footer: {
+                    Text("Used on the dashboard and charts so this child is easy to tell apart from siblings.")
                 }
 
                 Section {
@@ -145,6 +167,7 @@ struct ChildFormView: View {
             child.dailyLimitMinutes = dailyLimitMinutes
             child.weekdayLimitMinutes = usesSchedule ? weekdayLimitMinutes : nil
             child.weekendLimitMinutes = usesSchedule ? weekendLimitMinutes : nil
+            child.color = selectedColor
             child.updatedAt = .now
         } else {
             modelContext.insert(
@@ -153,6 +176,7 @@ struct ChildFormView: View {
                     dailyLimitMinutes: dailyLimitMinutes,
                     weekdayLimitMinutes: usesSchedule ? weekdayLimitMinutes : nil,
                     weekendLimitMinutes: usesSchedule ? weekendLimitMinutes : nil,
+                    colorRawValue: selectedColor.rawValue,
                     parent: parent
                 )
             )

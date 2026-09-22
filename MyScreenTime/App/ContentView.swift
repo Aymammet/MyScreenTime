@@ -33,7 +33,11 @@ struct ContentView: View {
                         .listRowBackground(Color.clear)
                 }
 
-                Section("Children") {
+                Section {
+                    sectionLabel("Children")
+                        .listRowInsets(EdgeInsets(top: 4, leading: 4, bottom: 2, trailing: 4))
+                        .listRowBackground(Color.clear)
+
                     if activeChildren.isEmpty {
                         ContentUnavailableView(
                             "No Children Yet",
@@ -48,6 +52,8 @@ struct ContentView: View {
                     } else {
                         ForEach(activeChildren) { child in
                             childRow(child)
+                                .listRowInsets(EdgeInsets())
+                                .listRowBackground(Color.clear)
                                 .swipeActions(edge: .trailing) {
                                     Button("Archive", systemImage: "archivebox") {
                                         childToArchive = child
@@ -60,16 +66,15 @@ struct ContentView: View {
                                     .tint(AppTheme.primary)
                                 }
                         }
-
-                        Button("Add child", systemImage: "plus") {
-                            isAddingChild = true
-                        }
-                        .accessibilityIdentifier("add-child-button")
                     }
                 }
 
                 if !archivedChildren.isEmpty {
-                    Section("Archived") {
+                    Section {
+                        sectionLabel("Archived")
+                            .listRowInsets(EdgeInsets(top: 4, leading: 4, bottom: 2, trailing: 4))
+                            .listRowBackground(Color.clear)
+
                         ForEach(archivedChildren) { child in
                             HStack {
                                 childRow(child)
@@ -83,18 +88,15 @@ struct ContentView: View {
                     }
                 }
             }
-            .navigationTitle("MyScreenTime")
-            .toolbar {
-                ToolbarItemGroup(placement: .topBarTrailing) {
-                    Button("Add child", systemImage: "plus") {
-                        isAddingChild = true
-                    }
-
-                    Button("Settings", systemImage: "gearshape") {
-                        isShowingSettings = true
-                    }
-                }
-            }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .background(AppTheme.background)
+            .contentMargins(.bottom, 100, for: .scrollContent)
+            .animation(.easeInOut(duration: 0.25), value: activeChildren.count)
+            .animation(.easeInOut(duration: 0.25), value: archivedChildren.count)
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $isShowingSettings) {
                 ParentSettingsView(parent: parent)
             }
@@ -161,123 +163,191 @@ struct ContentView: View {
         }
     }
 
+    /// A section-header-style label rendered as a normal (non-pinned) row, instead
+    /// of a List `Section` title — which sticks to the top of the screen while its
+    /// section scrolls past. Used so "Children"/"Archived" scroll away with their
+    /// content instead of floating over it.
+    private func sectionLabel(_ title: String) -> some View {
+        Text(title)
+            .font(.footnote.weight(.semibold))
+            .foregroundStyle(AppTheme.textSecondary)
+            .textCase(.uppercase)
+    }
+
     private var welcomeCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .top) {
+                Text(Date.now, format: .dateTime.weekday(.wide).day().month(.wide))
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(AppTheme.textTertiary)
+                    .textCase(.uppercase)
+
+                Spacer()
+
+                headerActions
+            }
+
             Text("Welcome, \(parent.name)")
                 .font(.title2.bold())
 
             if activeChildren.isEmpty {
                 Text("Let’s set up your family.")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppTheme.textSecondary)
             } else {
                 Text("\(activeChildren.count) active child \(activeChildren.count == 1 ? "profile" : "profiles")")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppTheme.textSecondary)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(20)
-        .background(.background, in: RoundedRectangle(cornerRadius: 20))
+        .padding(.horizontal, 20)
+        .padding(.top, 12)
+        .padding(.bottom, 4)
+    }
+
+    /// Add-child and settings actions, shown inline at the top of the scrollable
+    /// dashboard content (inside `welcomeCard`) rather than pinned in the nav bar —
+    /// so they scroll away with the page and are only visible at the very top,
+    /// instead of floating over content while scrolled down.
+    private var headerActions: some View {
+        HStack(spacing: 18) {
+            Button {
+                isAddingChild = true
+            } label: {
+                Image(systemName: "person.badge.plus")
+            }
+            .foregroundStyle(AppTheme.primary)
+            .accessibilityLabel("Add child")
+
+            Button {
+                isShowingSettings = true
+            } label: {
+                Image(systemName: "gearshape")
+            }
+            .foregroundStyle(.secondary)
+            .accessibilityLabel("Settings")
+        }
+        .buttonStyle(.plain)
+        .font(.system(size: 19, weight: .semibold))
     }
 
     private func childRow(_ child: ChildProfile) -> some View {
         let summary = UsageAggregator.summary(on: .now, child: child, sessions: allUsageSessions)
+        let statusColor = AppTheme.statusColor(for: summary.status)
+        let devices = deviceBreakdown(for: child)
         let activeTimer = timerManager.timer(for: child.id)
 
-        return VStack(spacing: 10) {
-            TimelineView(.periodic(from: .now, by: 1)) { timeline in
-                VStack(spacing: 10) {
-                    HStack(spacing: 12) {
-                        NavigationLink {
-                            ChildDetailView(child: child)
-                        } label: {
-                            HStack(spacing: 12) {
-                                ChildAvatarView(child: child, size: 52)
-                                VStack(alignment: .leading, spacing: 3) {
-                                    Text(child.name)
-                                        .font(.headline)
-                                        .foregroundStyle(.primary)
-                                    if let activeTimer {
-                                        Text("\(activeTimer.deviceName) • running")
-                                            .font(.subheadline)
-                                            .foregroundStyle(.secondary)
-                                    }
-                                }
-                            }
-                        }
-                        .accessibilityHint(child.isActive ? "Opens this child's devices" : "Opens archived child profile")
-
-                        Spacer(minLength: 8)
-
-                        if let activeTimer {
-                            VStack(alignment: .trailing, spacing: 4) {
-                                Text(remainingTime(until: activeTimer.endsAt, now: timeline.date))
-                                    .font(.title2.bold().monospacedDigit())
-
-                                Text("\(activeTimer.durationMinutes) min session")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-
-                                Button("Stop timer", systemImage: "stop.circle") {
-                                    timerManager.stop(
-                                        activeTimer,
-                                        now: timeline.date,
-                                        children: allChildren,
-                                        devices: allDevices,
-                                        context: modelContext
-                                    )
-                                }
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(AppTheme.danger)
-                                .accessibilityIdentifier("stop-timer-\(child.id.uuidString)")
-                            }
-                        } else if child.isActive {
-                            Button("Start timer", systemImage: "play.fill") {
-                                childForTimer = child
-                            }
-                            .buttonStyle(.bordered)
-                            .disabled(activeDevices(for: child).isEmpty)
-                            .accessibilityIdentifier("start-timer-\(child.id.uuidString)")
+        return TimelineView(.periodic(from: .now, by: 1)) { timeline in
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 12) {
+                    NavigationLink {
+                        ChildDetailView(child: child)
+                    } label: {
+                        HStack(spacing: 12) {
+                            ChildAvatarView(child: child, size: 44)
+                            Text(child.name)
+                                .font(.headline)
+                                .foregroundStyle(.primary)
                         }
                     }
+                    .accessibilityHint(child.isActive ? "Opens this child's devices" : "Opens archived child profile")
 
-                    dailyUsageFooter(summary)
+                    Spacer(minLength: 8)
+
+                    if let activeTimer {
+                        VStack(alignment: .trailing, spacing: 4) {
+                            Text(remainingTime(until: activeTimer.endsAt, now: timeline.date))
+                                .font(.title3.bold().monospacedDigit())
+
+                            Button("Stop timer", systemImage: "stop.circle") {
+                                timerManager.stop(
+                                    activeTimer,
+                                    now: timeline.date,
+                                    children: allChildren,
+                                    devices: allDevices,
+                                    context: modelContext
+                                )
+                            }
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(AppTheme.danger)
+                            .accessibilityIdentifier("stop-timer-\(child.id.uuidString)")
+                        }
+                    } else if child.isActive {
+                        Button("Start timer", systemImage: "play.fill") {
+                            childForTimer = child
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .disabled(activeDevices(for: child).isEmpty)
+                        .accessibilityIdentifier("start-timer-\(child.id.uuidString)")
+                    }
+                }
+
+                HStack(spacing: 12) {
+                    ZStack {
+                        RingProgressView(progress: summary.progress, color: statusColor, size: 48, lineWidth: 5)
+                        Text(summary.overMinutes > 0 ? "+\(summary.overMinutes)" : "\(Int((summary.progress * 100).rounded()))%")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(statusColor)
+                    }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Daily screen-time progress")
+                    .accessibilityValue("\(summary.usedMinutes) of \(summary.limitMinutes) minutes")
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        (Text("\(summary.usedMinutes)").font(.title3.bold())
+                            + Text(" of \(summary.limitMinutes) min").font(.caption).foregroundStyle(AppTheme.textSecondary))
+                            .accessibilityIdentifier("today-used-total-\(child.id.uuidString)")
+
+                        Text(summary.headline)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(statusColor)
+                    }
+
+                    Spacer()
+
+                    Text(summary.remainingHeadline)
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(statusColor)
+                        .accessibilityIdentifier("today-limit-balance-\(child.id.uuidString)")
+                }
+
+                if !devices.isEmpty {
+                    HStack(spacing: 8) {
+                        ForEach(devices.prefix(3), id: \.device.id) { entry in
+                            DeviceUsageChip(
+                                name: entry.device.name,
+                                minutes: entry.minutes,
+                                color: AppTheme.color(forDeviceID: entry.device.id)
+                            )
+                        }
+                    }
+                } else if child.isActive && activeDevices(for: child).isEmpty {
+                    Text("Add a device to start tracking.")
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.textTertiary)
                 }
             }
+            .padding(18)
+            .background(AppTheme.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .shadow(color: .black.opacity(0.04), radius: 2, y: 1)
         }
     }
 
-    private func dailyUsageFooter(_ summary: DailyUsageSummary) -> some View {
-        VStack(spacing: 5) {
-            HStack {
-                Text("\(UsageAggregator.format(minutes: summary.usedMinutes)) used")
-                    .foregroundStyle(.secondary)
-
-                Spacer()
-
-                Text(remainingLabel(for: summary))
-                    .foregroundStyle(summary.overMinutes > 0 ? AppTheme.danger : AppTheme.primary)
+    private func deviceBreakdown(for child: ChildProfile) -> [(device: Device, minutes: Int)] {
+        activeDevices(for: child)
+            .map { device in
+                (
+                    device: device,
+                    minutes: UsageAggregator.totalMinutes(
+                        on: .now,
+                        childID: child.id,
+                        deviceID: device.id,
+                        sessions: allUsageSessions
+                    )
+                )
             }
-            .font(.caption.weight(.medium))
-
-            ProgressView(value: summary.progress)
-                .tint(summary.overMinutes > 0 ? AppTheme.danger : AppTheme.primary)
-                .accessibilityLabel("Daily screen-time progress")
-                .accessibilityValue("\(summary.usedMinutes) of \(summary.limitMinutes) minutes")
-
-            Text("\(UsageAggregator.format(minutes: summary.limitMinutes)) daily limit")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity)
-        .accessibilityElement(children: .contain)
-    }
-
-    private func remainingLabel(for summary: DailyUsageSummary) -> String {
-        if summary.overMinutes > 0 {
-            return "\(UsageAggregator.format(minutes: summary.overMinutes)) over"
-        }
-
-        return "\(UsageAggregator.format(minutes: summary.remainingMinutes)) remaining"
+            .filter { $0.minutes > 0 }
+            .sorted { $0.minutes > $1.minutes }
     }
 
     private func activeDevices(for child: ChildProfile) -> [Device] {
@@ -306,14 +376,6 @@ struct ContentView: View {
         child.isActive = true
         child.updatedAt = .now
         try? modelContext.save()
-    }
-
-    private func statusColor(for status: DailyLimitStatus) -> Color {
-        switch status {
-        case .normal: AppTheme.success
-        case .nearLimit, .reached: AppTheme.warning
-        case .exceeded: AppTheme.danger
-        }
     }
 }
 

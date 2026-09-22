@@ -9,6 +9,7 @@ final class ChildProfile {
     var weekdayLimitMinutes: Int?
     var weekendLimitMinutes: Int?
     @Attribute(.externalStorage) var profilePhotoData: Data?
+    var colorRawValue: String?
     var isActive: Bool
     var createdAt: Date
     var updatedAt: Date
@@ -25,6 +26,7 @@ final class ChildProfile {
         weekdayLimitMinutes: Int? = nil,
         weekendLimitMinutes: Int? = nil,
         profilePhotoData: Data? = nil,
+        colorRawValue: String? = nil,
         isActive: Bool = true,
         createdAt: Date = .now,
         updatedAt: Date = .now,
@@ -38,6 +40,7 @@ final class ChildProfile {
         self.weekdayLimitMinutes = weekdayLimitMinutes
         self.weekendLimitMinutes = weekendLimitMinutes
         self.profilePhotoData = profilePhotoData
+        self.colorRawValue = colorRawValue
         self.isActive = isActive
         self.createdAt = createdAt
         self.updatedAt = updatedAt
@@ -87,5 +90,26 @@ final class ChildProfile {
         }
 
         return "\(hours) hr \(minutes) min"
+    }
+
+    /// The child's identity color, used for their avatar so siblings are told apart
+    /// at a glance. Falls back to a color chosen deterministically from the child's
+    /// id when none has been picked yet, so every child always has a stable color.
+    var color: ChildColor {
+        get { colorRawValue.flatMap(ChildColor.init(rawValue:)) ?? Self.defaultColor(for: id) }
+        set { colorRawValue = newValue.rawValue }
+    }
+
+    /// A one-letter initial shown on the avatar when there's no profile photo.
+    var initials: String {
+        guard let first = name.trimmingCharacters(in: .whitespacesAndNewlines).first else {
+            return "?"
+        }
+        return String(first).uppercased()
+    }
+
+    private static func defaultColor(for id: UUID) -> ChildColor {
+        let all = ChildColor.allCases
+        return all[abs(id.hashValue) % all.count]
     }
 }

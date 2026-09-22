@@ -13,6 +13,7 @@ struct ChildSettingsView: View {
     @State private var name: String
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var photoData: Data?
+    @State private var selectedColor: ChildColor
     @State private var dailyLimitMinutes: Int
     @State private var usesSchedule: Bool
     @State private var weekdayLimitMinutes: Int
@@ -24,6 +25,7 @@ struct ChildSettingsView: View {
         self.child = child
         _name = State(initialValue: child.name)
         _photoData = State(initialValue: child.profilePhotoData)
+        _selectedColor = State(initialValue: child.color)
         _dailyLimitMinutes = State(initialValue: child.dailyLimitMinutes)
         _usesSchedule = State(initialValue: child.weekdayLimitMinutes != nil && child.weekendLimitMinutes != nil)
         _weekdayLimitMinutes = State(initialValue: child.weekdayLimitMinutes ?? child.dailyLimitMinutes)
@@ -57,6 +59,16 @@ struct ChildSettingsView: View {
                     .textContentType(.name)
                     .textInputAutocapitalization(.words)
                     .accessibilityIdentifier("settings-child-name")
+            }
+
+            Section {
+                ColorSwatchPicker(selection: $selectedColor)
+                    .padding(.vertical, 4)
+                    .accessibilityIdentifier("settings-child-color-picker")
+            } header: {
+                Text("Color")
+            } footer: {
+                Text("Used on the dashboard and charts so this child is easy to tell apart from siblings.")
             }
 
             usageSection
@@ -97,7 +109,12 @@ struct ChildSettingsView: View {
             if let photoData, let image = UIImage(data: photoData) {
                 Image(uiImage: image).resizable().scaledToFill()
             } else {
-                Image(systemName: "person.crop.circle.fill").resizable().foregroundStyle(AppTheme.primary)
+                ZStack {
+                    Circle().fill(selectedColor.color.opacity(0.18))
+                    Text(name.trimmingCharacters(in: .whitespacesAndNewlines).first.map { String($0).uppercased() } ?? "?")
+                        .font(.system(size: 26, weight: .bold))
+                        .foregroundStyle(selectedColor.color)
+                }
             }
         }
         .frame(width: 64, height: 64)
@@ -138,6 +155,7 @@ struct ChildSettingsView: View {
     private func save() {
         child.name = normalizedName
         child.profilePhotoData = photoData
+        child.color = selectedColor
         child.dailyLimitMinutes = dailyLimitMinutes
         child.weekdayLimitMinutes = usesSchedule ? weekdayLimitMinutes : nil
         child.weekendLimitMinutes = usesSchedule ? weekendLimitMinutes : nil

@@ -11,13 +11,26 @@ struct ChildAvatarView: View {
                     .resizable()
                     .scaledToFill()
             } else {
-                Image(systemName: "person.crop.circle.fill")
-                    .resizable()
-                    .foregroundStyle(AppTheme.primary)
+                ZStack {
+                    Circle()
+                        .fill(child.color.color.opacity(0.18))
+                    Text(child.initials)
+                        .font(.system(size: size * 0.42, weight: .bold))
+                        .foregroundStyle(child.color.color)
+                }
             }
         }
         .frame(width: size, height: size)
         .clipShape(Circle())
         .accessibilityHidden(true)
     }
+}
+
+#Preview {
+    HStack(spacing: 12) {
+        ChildAvatarView(child: ChildProfile(name: "Alex", colorRawValue: ChildColor.teal.rawValue))
+        ChildAvatarView(child: ChildProfile(name: "Sam", colorRawValue: ChildColor.orange.rawValue))
+        ChildAvatarView(child: ChildProfile(name: "Maya", colorRawValue: ChildColor.pink.rawValue))
+    }
+    .padding()
 }

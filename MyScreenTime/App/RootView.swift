@@ -21,6 +21,7 @@ private struct FamilyShellView: View {
     let parent: ParentProfile
 
     @State private var destination: AnalysisDestination = .home
+    @Namespace private var tabIndicator
 
     var body: some View {
         Group {
@@ -33,10 +34,13 @@ private struct FamilyShellView: View {
                         destination: destination
                     )
                 }
+                .transition(.opacity.combined(with: .scale(scale: 0.98)))
             } else {
                 ContentView(parent: parent)
+                    .transition(.opacity.combined(with: .scale(scale: 0.98)))
             }
         }
+        .animation(.easeInOut(duration: 0.22), value: destination == .home)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             analysisNavigationBar
         }
@@ -47,7 +51,7 @@ private struct FamilyShellView: View {
         HStack(spacing: 0) {
             ForEach(AnalysisDestination.allCases) { item in
                 Button {
-                    withAnimation(.easeInOut(duration: 0.2)) {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
                         destination = item
                     }
                 } label: {
@@ -60,10 +64,13 @@ private struct FamilyShellView: View {
                             .font(.system(size: 18, weight: .semibold))
                             .foregroundStyle(destination == item ? .white : .secondary)
                             .frame(width: 38, height: 38)
-                            .background(
-                                destination == item ? AppTheme.primary : Color.clear,
-                                in: Circle()
-                            )
+                            .background {
+                                if destination == item {
+                                    Circle()
+                                        .fill(AppTheme.primary)
+                                        .matchedGeometryEffect(id: "tab-indicator", in: tabIndicator)
+                                }
+                            }
 
                         Text(item.rawValue)
                             .font(.caption2.weight(destination == item ? .semibold : .medium))
