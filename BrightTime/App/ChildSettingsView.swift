@@ -13,6 +13,8 @@ struct ChildSettingsView: View {
     @State private var name: String
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var photoData: Data?
+    @State private var selectedGender: ChildGender
+    @State private var selectedAvatar: DefaultProfileAvatar
     @State private var selectedColor: ChildColor
     @State private var dailyLimitMinutes: Int
     @State private var usesSchedule: Bool
@@ -25,6 +27,8 @@ struct ChildSettingsView: View {
         self.child = child
         _name = State(initialValue: child.name)
         _photoData = State(initialValue: child.profilePhotoData)
+        _selectedGender = State(initialValue: child.resolvedGender)
+        _selectedAvatar = State(initialValue: child.resolvedDefaultAvatar)
         _selectedColor = State(initialValue: child.color)
         _dailyLimitMinutes = State(initialValue: child.dailyLimitMinutes)
         _usesSchedule = State(initialValue: child.weekdayLimitMinutes != nil && child.weekendLimitMinutes != nil)
@@ -47,11 +51,18 @@ struct ChildSettingsView: View {
             Section("Profile") {
                 HStack(spacing: 16) {
                     avatar
-                    PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                        Label(photoData == nil ? "Choose photo" : "Change photo", systemImage: "photo")
-                    }
-                    if photoData != nil {
-                        Button("Remove", role: .destructive) { photoData = nil }
+                    VStack(alignment: .leading, spacing: 8) {
+                        if photoData == nil {
+                            PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                                Label("Choose photo", systemImage: "photo")
+                            }
+                        } else {
+                            PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                                Label("Change photo", systemImage: "photo")
+                            }
+                            Button("Use default", role: .destructive) { photoData = nil }
+                                .font(.caption)
+                        }
                     }
                 }
 
@@ -59,6 +70,20 @@ struct ChildSettingsView: View {
                     .textContentType(.name)
                     .textInputAutocapitalization(.words)
                     .accessibilityIdentifier("settings-child-name")
+
+                Picker("Gender", selection: $selectedGender) {
+                    ForEach(ChildGender.allCases) { gender in
+                        Text(gender.title).tag(gender)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .accessibilityIdentifier("settings-child-gender-picker")
+
+                DefaultAvatarPicker(
+                    avatars: selectedGender.avatarChoices,
+                    selection: $selectedAvatar
+                )
+                .accessibilityIdentifier("settings-child-default-avatar-picker")
             }
 
             Section {
@@ -98,6 +123,11 @@ struct ChildSettingsView: View {
                 photoData = resizedPhotoData(data)
             }
         }
+        .onChange(of: selectedGender) { _, gender in
+            if selectedAvatar.gender != gender {
+                selectedAvatar = gender.avatarChoices[0]
+            }
+        }
         .alert("Couldn’t Save Child", isPresented: Binding(
             get: { saveErrorMessage != nil },
             set: { if !$0 { saveErrorMessage = nil } }
@@ -109,12 +139,9 @@ struct ChildSettingsView: View {
             if let photoData, let image = UIImage(data: photoData) {
                 Image(uiImage: image).resizable().scaledToFill()
             } else {
-                ZStack {
-                    Circle().fill(selectedColor.color.opacity(0.18))
-                    Text(name.trimmingCharacters(in: .whitespacesAndNewlines).first.map { String($0).uppercased() } ?? "?")
-                        .font(.system(size: 26, weight: .bold))
-                        .foregroundStyle(selectedColor.color)
-                }
+                Image(selectedAvatar.assetName)
+                    .resizable()
+                    .scaledToFill()
             }
         }
         .frame(width: 64, height: 64)
@@ -154,6 +181,8 @@ struct ChildSettingsView: View {
 
     private func save() {
         child.name = normalizedName
+        child.gender = selectedGender
+        child.defaultAvatar = selectedAvatar
         child.profilePhotoData = photoData
         child.color = selectedColor
         child.dailyLimitMinutes = dailyLimitMinutes

@@ -1,6 +1,52 @@
 import Foundation
 import SwiftData
 
+enum DefaultProfileAvatar: String, CaseIterable, Codable, Identifiable {
+    case boy1, boy2, boy3, boy4, boy5
+    case girl1, girl2, girl3, girl4, girl5
+
+    var id: String { rawValue }
+
+    var gender: ChildGender {
+        rawValue.hasPrefix("boy") ? .boy : .girl
+    }
+
+    var assetName: String {
+        switch self {
+        case .boy1: "DefaultBoyAvatar"
+        case .boy2: "DefaultBoyAvatar2"
+        case .boy3: "DefaultBoyAvatar3"
+        case .boy4: "DefaultBoyAvatar4"
+        case .boy5: "DefaultBoyAvatar5"
+        case .girl1: "DefaultGirlAvatar"
+        case .girl2: "DefaultGirlAvatar2"
+        case .girl3: "DefaultGirlAvatar3"
+        case .girl4: "DefaultGirlAvatar4"
+        case .girl5: "DefaultGirlAvatar5"
+        }
+    }
+
+    var accessibilityName: String {
+        "\(gender.title) avatar \((gender.avatarChoices.firstIndex(of: self) ?? 0) + 1)"
+    }
+}
+
+enum ChildGender: String, CaseIterable, Codable, Identifiable {
+    case boy
+    case girl
+
+    var id: String { rawValue }
+    var title: String { rawValue.capitalized }
+
+    var avatarChoices: [DefaultProfileAvatar] {
+        DefaultProfileAvatar.allCases.filter { $0.gender == self }
+    }
+
+    var defaultAvatarAssetName: String {
+        avatarChoices[0].assetName
+    }
+}
+
 @Model
 final class ChildProfile {
     @Attribute(.unique) var id: UUID
@@ -9,6 +55,8 @@ final class ChildProfile {
     var weekdayLimitMinutes: Int?
     var weekendLimitMinutes: Int?
     @Attribute(.externalStorage) var profilePhotoData: Data?
+    var genderRawValue: String?
+    var defaultAvatarRawValue: String?
     var colorRawValue: String?
     var isActive: Bool
     var createdAt: Date
@@ -26,6 +74,8 @@ final class ChildProfile {
         weekdayLimitMinutes: Int? = nil,
         weekendLimitMinutes: Int? = nil,
         profilePhotoData: Data? = nil,
+        gender: ChildGender? = nil,
+        defaultAvatar: DefaultProfileAvatar? = nil,
         colorRawValue: String? = nil,
         isActive: Bool = true,
         createdAt: Date = .now,
@@ -40,6 +90,8 @@ final class ChildProfile {
         self.weekdayLimitMinutes = weekdayLimitMinutes
         self.weekendLimitMinutes = weekendLimitMinutes
         self.profilePhotoData = profilePhotoData
+        self.genderRawValue = gender?.rawValue
+        self.defaultAvatarRawValue = defaultAvatar?.rawValue
         self.colorRawValue = colorRawValue
         self.isActive = isActive
         self.createdAt = createdAt
@@ -98,6 +150,30 @@ final class ChildProfile {
     var color: ChildColor {
         get { colorRawValue.flatMap(ChildColor.init(rawValue:)) ?? Self.defaultColor(for: id) }
         set { colorRawValue = newValue.rawValue }
+    }
+
+    var gender: ChildGender? {
+        get { genderRawValue.flatMap(ChildGender.init(rawValue:)) }
+        set { genderRawValue = newValue?.rawValue }
+    }
+
+    /// Existing profiles predate gender selection. Give them a stable default
+    /// avatar until the parent chooses a gender in Settings.
+    var resolvedGender: ChildGender {
+        if let gender { return gender }
+        return id.uuidString.utf8.reduce(0, { $0 + Int($1) }).isMultiple(of: 2) ? .boy : .girl
+    }
+
+    var defaultAvatar: DefaultProfileAvatar? {
+        get { defaultAvatarRawValue.flatMap(DefaultProfileAvatar.init(rawValue:)) }
+        set { defaultAvatarRawValue = newValue?.rawValue }
+    }
+
+    var resolvedDefaultAvatar: DefaultProfileAvatar {
+        if let defaultAvatar, defaultAvatar.gender == resolvedGender { return defaultAvatar }
+        let choices = resolvedGender.avatarChoices
+        let index = id.uuidString.utf8.reduce(0, { $0 + Int($1) }) % choices.count
+        return choices[index]
     }
 
     /// A one-letter initial shown on the avatar when there's no profile photo.

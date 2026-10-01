@@ -7,6 +7,7 @@ final class ParentProfile {
     var name: String
     var notificationsEnabled: Bool
     var timeZoneIdentifier: String
+    var defaultAvatarRawValue: String?
     var createdAt: Date
     var updatedAt: Date
     @Relationship(deleteRule: .cascade, inverse: \ChildProfile.parent)
@@ -17,6 +18,7 @@ final class ParentProfile {
         name: String,
         notificationsEnabled: Bool = true,
         timeZoneIdentifier: String = TimeZone.current.identifier,
+        defaultAvatar: DefaultProfileAvatar? = nil,
         createdAt: Date = .now,
         updatedAt: Date = .now,
         children: [ChildProfile] = []
@@ -25,6 +27,7 @@ final class ParentProfile {
         self.name = Self.normalizedName(name)
         self.notificationsEnabled = notificationsEnabled
         self.timeZoneIdentifier = timeZoneIdentifier
+        self.defaultAvatarRawValue = defaultAvatar?.rawValue
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.children = children
@@ -36,5 +39,14 @@ final class ParentProfile {
 
     static func isValidName(_ name: String) -> Bool {
         (2...50).contains(normalizedName(name).count)
+    }
+
+    var defaultAvatar: DefaultProfileAvatar? {
+        get { defaultAvatarRawValue.flatMap(DefaultProfileAvatar.init(rawValue:)) }
+        set { defaultAvatarRawValue = newValue?.rawValue }
+    }
+
+    var resolvedDefaultAvatar: DefaultProfileAvatar {
+        defaultAvatar ?? .boy1
     }
 }

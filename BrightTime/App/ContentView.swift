@@ -1,3 +1,4 @@
+import Charts
 import SwiftData
 import SwiftUI
 
@@ -16,6 +17,13 @@ struct ContentView: View {
     @State private var childForTimer: ChildProfile?
     @StateObject private var timerManager = ScreenTimerManager()
 
+    private let childAccents: [Color] = [
+        AppTheme.primary,
+        AppTheme.rose,
+        Color(red: 0.949, green: 0.553, blue: 0.294),
+        AppTheme.lavender
+    ]
+
     private var activeChildren: [ChildProfile] {
         allChildren.filter { $0.parent?.id == parent.id && $0.isActive }
     }
@@ -24,77 +32,71 @@ struct ContentView: View {
         allChildren.filter { $0.parent?.id == parent.id && !$0.isActive }
     }
 
+    private var familySummaries: [DailyUsageSummary] {
+        activeChildren.map { UsageAggregator.summary(on: .now, child: $0, sessions: allUsageSessions) }
+    }
+
+    private var familyUsedMinutes: Int {
+        familySummaries.reduce(0) { $0 + $1.usedMinutes }
+    }
+
+    private var familyLimitMinutes: Int {
+        familySummaries.reduce(0) { $0 + $1.limitMinutes }
+    }
+
+    private var familyAverageMinutes: Int {
+        guard !activeChildren.isEmpty else { return 0 }
+        return familyUsedMinutes / activeChildren.count
+    }
+
+    private var familyRemainingMinutes: Int {
+        max(familyLimitMinutes - familyUsedMinutes, 0)
+    }
+
+    private var yesterdayAverageMinutes: Int {
+        guard !activeChildren.isEmpty,
+              let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: .now) else { return 0 }
+        let total = activeChildren.reduce(0) { result, child in
+            result + UsageAggregator.totalMinutes(
+                on: yesterday,
+                childID: child.id,
+                sessions: allUsageSessions
+            )
+        }
+        return total / activeChildren.count
+    }
+
     var body: some View {
         NavigationStack {
-            List {
-                Section {
-                    welcomeCard
-                        .listRowInsets(EdgeInsets())
-                        .listRowBackground(Color.clear)
-                }
-
-                Section {
-                    sectionLabel("Children")
-                        .listRowInsets(EdgeInsets(top: 4, leading: 4, bottom: 2, trailing: 4))
-                        .listRowBackground(Color.clear)
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 22) {
+                    brandHeader
+                    dailySnapshot
+                    childrenHeader
 
                     if activeChildren.isEmpty {
-                        ContentUnavailableView(
-                            "No Children Yet",
-                            systemImage: "figure.2.and.child.holdinghands",
-                            description: Text("Add a child profile and choose their daily screen-time limit.")
-                        )
-
-                        Button("Add first child", systemImage: "plus.circle.fill") {
-                            isAddingChild = true
-                        }
-                        .accessibilityIdentifier("add-child-button")
+                        emptyChildrenCard
                     } else {
-                        ForEach(activeChildren) { child in
-                            childRow(child)
-                                .listRowInsets(EdgeInsets())
-                                .listRowBackground(Color.clear)
-                                .swipeActions(edge: .trailing) {
-                                    Button("Archive", systemImage: "archivebox") {
-                                        childToArchive = child
-                                    }
-                                    .tint(AppTheme.warning)
+                        ForEach(Array(activeChildren.enumerated()), id: \.element.id) { index, child in
+                            childCard(child, accent: childAccents[index % childAccents.count])
 
-                                    Button("Edit", systemImage: "pencil") {
-                                        childToEdit = child
-                                    }
-                                    .tint(AppTheme.primary)
-                                }
-                        }
-                    }
-                }
-
-                if !archivedChildren.isEmpty {
-                    Section {
-                        sectionLabel("Archived")
-                            .listRowInsets(EdgeInsets(top: 4, leading: 4, bottom: 2, trailing: 4))
-                            .listRowBackground(Color.clear)
-
-                        ForEach(archivedChildren) { child in
-                            HStack {
-                                childRow(child)
-                                Spacer()
-                                Button("Restore") {
-                                    restore(child)
-                                }
-                                .buttonStyle(.bordered)
+                            if index < activeChildren.count - 1 {
+                                childSeparator
                             }
                         }
                     }
+
+                    if !archivedChildren.isEmpty {
+                        archivedSection
+                    }
                 }
+                .padding(.horizontal, 18)
+                .padding(.top, 10)
+                .padding(.bottom, 28)
             }
-            .listStyle(.plain)
-            .scrollContentBackground(.hidden)
-            .background(AppTheme.background)
-            .contentMargins(.bottom, 100, for: .scrollContent)
-            .animation(.easeInOut(duration: 0.25), value: activeChildren.count)
-            .animation(.easeInOut(duration: 0.25), value: archivedChildren.count)
-            .navigationTitle("")
+            .background(backgroundGradient.ignoresSafeArea())
+            .contentMargins(.bottom, 84, for: .scrollContent)
+            .navigationTitle("BrightTime")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $isShowingSettings) {
@@ -112,7 +114,7 @@ struct ContentView: View {
                 if let childForTimer {
                     StartTimerView(
                         child: childForTimer,
-                        devices: allDevices.filter { $0.isActive && $0.isAvailable(to: childForTimer.id) }
+                        devices: activeDevices(for: childForTimer)
                     ) { device, minutes in
                         timerManager.start(child: childForTimer, device: device, minutes: minutes)
                     }
@@ -137,9 +139,7 @@ struct ContentView: View {
                 titleVisibility: .visible
             ) {
                 Button("Archive", role: .destructive) {
-                    if let childToArchive {
-                        archive(childToArchive)
-                    }
+                    if let childToArchive { archive(childToArchive) }
                 }
                 Button("Cancel", role: .cancel) {}
             } message: {
@@ -161,104 +161,333 @@ struct ContentView: View {
             }
             .allowsHitTesting(false)
         }
-    }
-
-    /// A section-header-style label rendered as a normal (non-pinned) row, instead
-    /// of a List `Section` title — which sticks to the top of the screen while its
-    /// section scrolls past. Used so "Children"/"Archived" scroll away with their
-    /// content instead of floating over it.
-    private func sectionLabel(_ title: String) -> some View {
-        Text(title)
-            .font(.footnote.weight(.semibold))
-            .foregroundStyle(AppTheme.textSecondary)
-            .textCase(.uppercase)
-    }
-
-    private var welcomeCard: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .top) {
-                Text(Date.now, format: .dateTime.weekday(.wide).day().month(.wide))
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(AppTheme.textTertiary)
-                    .textCase(.uppercase)
-
-                Spacer()
-
-                headerActions
-            }
-
-            Text("Welcome, \(parent.name)")
-                .font(.title2.bold())
-
-            if activeChildren.isEmpty {
-                Text("Let’s set up your family.")
-                    .foregroundStyle(AppTheme.textSecondary)
-            } else {
-                Text("\(activeChildren.count) active child \(activeChildren.count == 1 ? "profile" : "profiles")")
-                    .foregroundStyle(AppTheme.textSecondary)
-            }
+#if DEBUG
+        .task(id: sampleDataSeedID) {
+            guard !CommandLine.arguments.contains("-ui-testing") else { return }
+            _ = try? SampleUsageSeeder.seedPreviousWeekIfNeeded(
+                children: activeChildren,
+                devices: allDevices,
+                existingSessions: allUsageSessions,
+                context: modelContext
+            )
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 20)
-        .padding(.top, 12)
-        .padding(.bottom, 4)
+#endif
     }
 
-    /// Add-child and settings actions, shown inline at the top of the scrollable
-    /// dashboard content (inside `welcomeCard`) rather than pinned in the nav bar —
-    /// so they scroll away with the page and are only visible at the very top,
-    /// instead of floating over content while scrolled down.
-    private var headerActions: some View {
-        HStack(spacing: 18) {
-            Button {
-                isAddingChild = true
-            } label: {
-                Image(systemName: "person.badge.plus")
-            }
-            .foregroundStyle(AppTheme.primary)
-            .accessibilityLabel("Add child")
+#if DEBUG
+    private var sampleDataSeedID: String {
+        let childIDs = activeChildren.map(\.id.uuidString).sorted().joined(separator: ",")
+        let deviceIDs = allDevices.filter(\.isActive).map(\.id.uuidString).sorted().joined(separator: ",")
+        return "\(childIDs)|\(deviceIDs)"
+    }
+#endif
+
+    private var backgroundGradient: some View {
+        LinearGradient(
+            colors: [
+                Color(red: 0.965, green: 0.969, blue: 0.996),
+                Color(red: 0.985, green: 0.982, blue: 1.000),
+                AppTheme.background
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    private var brandHeader: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "sun.horizon.fill")
+                .font(.system(size: 27, weight: .semibold))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [AppTheme.primary, AppTheme.lavender],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+
+            Text("BrightTime")
+                .font(.system(size: 30, weight: .bold, design: .rounded))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [AppTheme.primary, AppTheme.lavender],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+
+            Spacer()
 
             Button {
                 isShowingSettings = true
             } label: {
-                Image(systemName: "gearshape")
+                ParentAvatarView(parent: parent, size: 44)
             }
-            .foregroundStyle(.secondary)
+            .buttonStyle(.plain)
             .accessibilityLabel("Settings")
         }
-        .buttonStyle(.plain)
-        .font(.system(size: 19, weight: .semibold))
     }
 
-    private func childRow(_ child: ChildProfile) -> some View {
+    private var dailySnapshot: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Text("Daily snapshot")
+                    .font(.title2.bold())
+                    .foregroundStyle(AppTheme.primaryDeep)
+
+                Spacer()
+
+                Label("Today", systemImage: "calendar")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(AppTheme.primaryDeep)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(.white.opacity(0.72), in: Capsule())
+            }
+
+            HStack(alignment: .center, spacing: 10) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(compactDuration(familyAverageMinutes))
+                        .font(.system(size: 36, weight: .bold, design: .rounded))
+                        .foregroundStyle(AppTheme.primaryDeep)
+                        .minimumScaleFactor(0.72)
+                        .lineLimit(1)
+
+                    Text("family average today")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(AppTheme.textSecondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                snapshotMetric(
+                    icon: "clock",
+                    value: compactDuration(familyRemainingMinutes),
+                    label: familyUsedMinutes > familyLimitMinutes ? "over limit" : "left"
+                )
+
+                snapshotMetric(
+                    icon: comparisonIcon,
+                    value: comparisonValue,
+                    label: comparisonLabel
+                )
+            }
+
+            Chart(hourlyUsage) { point in
+                BarMark(
+                    x: .value("Hour", point.hour),
+                    y: .value("Minutes", point.minutes)
+                )
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [AppTheme.primary.opacity(0.38), AppTheme.primary],
+                        startPoint: .bottom,
+                        endPoint: .top
+                    )
+                )
+                .cornerRadius(3)
+            }
+            .chartXAxis {
+                AxisMarks(values: [0, 6, 12, 18, 23]) { value in
+                    AxisGridLine(stroke: StrokeStyle(lineWidth: 0.6, dash: [3]))
+                        .foregroundStyle(AppTheme.cardBorder)
+                    AxisValueLabel {
+                        if let hour = value.as(Int.self) {
+                            Text(hourLabel(hour))
+                                .font(.caption2)
+                                .foregroundStyle(AppTheme.textTertiary)
+                        }
+                    }
+                }
+            }
+            .chartYAxis(.hidden)
+            .frame(height: 92)
+            .padding(12)
+            .background(.white.opacity(0.55), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        }
+        .padding(18)
+        .background {
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [AppTheme.primaryTint, Color.white.opacity(0.92)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .stroke(.white.opacity(0.9), lineWidth: 1)
+        }
+        .shadow(color: AppTheme.primary.opacity(0.12), radius: 18, y: 8)
+        .accessibilityElement(children: .contain)
+    }
+
+    private func snapshotMetric(icon: String, value: String, label: String) -> some View {
+        VStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(AppTheme.primary)
+            Text(value)
+                .font(.system(size: 16, weight: .bold, design: .rounded))
+                .foregroundStyle(AppTheme.primaryDeep)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            Text(label)
+                .font(.caption2.weight(.medium))
+                .foregroundStyle(AppTheme.textSecondary)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+        }
+        .frame(width: 78)
+        .padding(.vertical, 12)
+        .background(.white.opacity(0.75), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+
+    private var childrenHeader: some View {
+        HStack {
+            Text("Your children")
+                .font(.title2.bold())
+                .foregroundStyle(AppTheme.primaryDeep)
+
+            Spacer()
+
+            Button {
+                isAddingChild = true
+            } label: {
+                Label("Add", systemImage: "plus")
+                    .font(.subheadline.bold())
+                    .padding(.horizontal, 13)
+                    .padding(.vertical, 8)
+                    .background(AppTheme.primaryTint, in: Capsule())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("add-child-button")
+        }
+    }
+
+    private var emptyChildrenCard: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "figure.2.and.child.holdinghands")
+                .font(.system(size: 34))
+                .foregroundStyle(AppTheme.primary)
+            Text("No children yet")
+                .font(.headline)
+            Text("Add a child profile to start tracking healthy screen-time habits.")
+                .font(.subheadline)
+                .foregroundStyle(AppTheme.textSecondary)
+                .multilineTextAlignment(.center)
+            Button("Add first child", systemImage: "plus.circle.fill") {
+                isAddingChild = true
+            }
+            .buttonStyle(.borderedProminent)
+            .accessibilityIdentifier("add-child-button")
+        }
+        .frame(maxWidth: .infinity)
+        .padding(28)
+        .background(.white, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .shadow(color: AppTheme.primaryDeep.opacity(0.06), radius: 12, y: 5)
+    }
+
+    private var childSeparator: some View {
+        Capsule()
+            .fill(
+                LinearGradient(
+                    colors: [AppTheme.primary.opacity(0.08), AppTheme.lavender.opacity(0.25), AppTheme.primary.opacity(0.08)],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
+            .frame(height: 5)
+            .padding(.horizontal, 4)
+            .accessibilityHidden(true)
+    }
+
+    private func childCard(_ child: ChildProfile, accent: Color) -> some View {
         let summary = UsageAggregator.summary(on: .now, child: child, sessions: allUsageSessions)
-        let statusColor = AppTheme.statusColor(for: summary.status)
-        let devices = deviceBreakdown(for: child)
+        let devices = activeDevices(for: child)
         let activeTimer = timerManager.timer(for: child.id)
 
         return TimelineView(.periodic(from: .now, by: 1)) { timeline in
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 15) {
+                HStack(spacing: 14) {
                     NavigationLink {
                         ChildDetailView(child: child)
                     } label: {
-                        HStack(spacing: 12) {
-                            ChildAvatarView(child: child, size: 44)
-                            Text(child.name)
-                                .font(.headline)
-                                .foregroundStyle(.primary)
+                        HStack(spacing: 14) {
+                            ChildAvatarView(child: child, size: 66)
+
+                            VStack(alignment: .leading, spacing: 3) {
+                                HStack(spacing: 6) {
+                                    Text(child.name)
+                                        .font(.title3.bold())
+                                        .foregroundStyle(AppTheme.primaryDeep)
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption.bold())
+                                        .foregroundStyle(AppTheme.textTertiary)
+                                }
+
+                                Text(compactDuration(summary.usedMinutes))
+                                    .font(.title2.bold())
+                                    .foregroundStyle(AppTheme.primaryDeep)
+                                    .accessibilityIdentifier("today-used-total-\(child.id.uuidString)")
+                                Text("today’s total")
+                                    .font(.caption)
+                                    .foregroundStyle(AppTheme.textSecondary)
+                            }
                         }
                     }
-                    .accessibilityHint(child.isActive ? "Opens this child's devices" : "Opens archived child profile")
+                    .buttonStyle(.plain)
 
-                    Spacer(minLength: 8)
+                    Spacer(minLength: 4)
 
+                    ZStack {
+                        RingProgressView(
+                            progress: summary.progress,
+                            color: summary.status == .normal ? accent : AppTheme.statusColor(for: summary.status),
+                            trackColor: accent.opacity(0.13),
+                            size: 72,
+                            lineWidth: 8
+                        )
+                        VStack(spacing: 0) {
+                            Text(summary.overMinutes > 0 ? "+\(summary.overMinutes)" : "\(Int((summary.progress * 100).rounded()))%")
+                                .font(.headline.bold())
+                            Text(summary.overMinutes > 0 ? "over" : "used")
+                                .font(.caption2)
+                                .foregroundStyle(AppTheme.textSecondary)
+                        }
+                        .foregroundStyle(AppTheme.primaryDeep)
+                    }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Daily screen-time progress")
+                    .accessibilityValue("\(summary.usedMinutes) of \(summary.limitMinutes) minutes")
+                }
+
+                VStack(alignment: .leading, spacing: 9) {
+                    Text(limitLine(for: summary))
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(AppTheme.primaryDeep)
+                        .accessibilityIdentifier("today-limit-balance-\(child.id.uuidString)")
+
+                    ProgressView(value: min(summary.progress, 1))
+                        .tint(summary.status == .normal ? accent : AppTheme.statusColor(for: summary.status))
+                        .scaleEffect(x: 1, y: 1.8, anchor: .center)
+                }
+                .padding(13)
+                .background(accent.opacity(0.075), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+
+                Group {
                     if let activeTimer {
-                        VStack(alignment: .trailing, spacing: 4) {
-                            Text(remainingTime(until: activeTimer.endsAt, now: timeline.date))
-                                .font(.title3.bold().monospacedDigit())
+                        HStack {
+                            Label(
+                                remainingTime(until: activeTimer.endsAt, now: timeline.date),
+                                systemImage: "timer"
+                            )
+                            .font(.headline.bold().monospacedDigit())
 
-                            Button("Stop timer", systemImage: "stop.circle") {
+                            Spacer()
+
+                            Button("Stop timer", systemImage: "stop.fill") {
                                 timerManager.stop(
                                     activeTimer,
                                     now: timeline.date,
@@ -267,87 +496,130 @@ struct ContentView: View {
                                     context: modelContext
                                 )
                             }
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(AppTheme.danger)
+                            .font(.subheadline.bold())
                             .accessibilityIdentifier("stop-timer-\(child.id.uuidString)")
                         }
-                    } else if child.isActive {
-                        Button("Start timer", systemImage: "play.fill") {
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 12)
+                        .background(AppTheme.danger, in: Capsule())
+                    } else {
+                        Button {
                             childForTimer = child
+                        } label: {
+                            Label("Start timer", systemImage: "timer")
+                                .font(.subheadline.bold())
+                                .foregroundStyle(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 13)
+                                .background(
+                                    LinearGradient(
+                                        colors: [accent, accent.opacity(0.78)],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    ),
+                                    in: Capsule()
+                                )
                         }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                        .disabled(activeDevices(for: child).isEmpty)
+                        .buttonStyle(.plain)
+                        .disabled(devices.isEmpty)
+                        .opacity(devices.isEmpty ? 0.45 : 1)
                         .accessibilityIdentifier("start-timer-\(child.id.uuidString)")
                     }
                 }
-
-                HStack(spacing: 12) {
-                    ZStack {
-                        RingProgressView(progress: summary.progress, color: statusColor, size: 48, lineWidth: 5)
-                        Text(summary.overMinutes > 0 ? "+\(summary.overMinutes)" : "\(Int((summary.progress * 100).rounded()))%")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(statusColor)
-                    }
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel("Daily screen-time progress")
-                    .accessibilityValue("\(summary.usedMinutes) of \(summary.limitMinutes) minutes")
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        (Text("\(summary.usedMinutes)").font(.title3.bold())
-                            + Text(" of \(summary.limitMinutes) min").font(.caption).foregroundStyle(AppTheme.textSecondary))
-                            .accessibilityIdentifier("today-used-total-\(child.id.uuidString)")
-
-                        Text(summary.headline)
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(statusColor)
-                    }
-
-                    Spacer()
-
-                    Text(summary.remainingHeadline)
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(statusColor)
-                        .accessibilityIdentifier("today-limit-balance-\(child.id.uuidString)")
-                }
-
-                if !devices.isEmpty {
-                    HStack(spacing: 8) {
-                        ForEach(devices.prefix(3), id: \.device.id) { entry in
-                            DeviceUsageChip(
-                                name: entry.device.name,
-                                minutes: entry.minutes,
-                                color: AppTheme.color(forDeviceID: entry.device.id)
-                            )
-                        }
-                    }
-                } else if child.isActive && activeDevices(for: child).isEmpty {
-                    Text("Add a device to start tracking.")
-                        .font(.caption)
-                        .foregroundStyle(AppTheme.textTertiary)
-                }
             }
-            .padding(18)
-            .background(AppTheme.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-            .shadow(color: .black.opacity(0.04), radius: 2, y: 1)
+            .padding(17)
+            .background(.white.opacity(0.96), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .stroke(accent.opacity(0.09), lineWidth: 1)
+            }
+            .shadow(color: AppTheme.primaryDeep.opacity(0.075), radius: 14, y: 6)
+            .contextMenu {
+                Button("Edit", systemImage: "pencil") { childToEdit = child }
+                Button("Archive", systemImage: "archivebox", role: .destructive) { childToArchive = child }
+            }
         }
     }
 
-    private func deviceBreakdown(for child: ChildProfile) -> [(device: Device, minutes: Int)] {
-        activeDevices(for: child)
-            .map { device in
-                (
-                    device: device,
-                    minutes: UsageAggregator.totalMinutes(
-                        on: .now,
-                        childID: child.id,
-                        deviceID: device.id,
-                        sessions: allUsageSessions
-                    )
-                )
+    private var archivedSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Archived")
+                .font(.headline)
+                .foregroundStyle(AppTheme.textSecondary)
+
+            ForEach(archivedChildren) { child in
+                HStack {
+                    ChildAvatarView(child: child, size: 38)
+                    Text(child.name)
+                        .font(.subheadline.weight(.semibold))
+                    Spacer()
+                    Button("Restore") { restore(child) }
+                        .buttonStyle(.bordered)
+                }
+                .padding(12)
+                .background(.white.opacity(0.75), in: RoundedRectangle(cornerRadius: 16))
             }
-            .filter { $0.minutes > 0 }
-            .sorted { $0.minutes > $1.minutes }
+        }
+    }
+
+    private var comparisonValue: String {
+        guard yesterdayAverageMinutes > 0 else { return "—" }
+        let percent = Int((abs(Double(familyAverageMinutes - yesterdayAverageMinutes)) / Double(yesterdayAverageMinutes) * 100).rounded())
+        return "\(percent)%"
+    }
+
+    private var comparisonLabel: String {
+        guard yesterdayAverageMinutes > 0 else { return "no prior data" }
+        if familyAverageMinutes == yesterdayAverageMinutes { return "same as yesterday" }
+        return familyAverageMinutes < yesterdayAverageMinutes ? "less than yesterday" : "more than yesterday"
+    }
+
+    private var comparisonIcon: String {
+        guard yesterdayAverageMinutes > 0 else { return "chart.bar" }
+        if familyAverageMinutes == yesterdayAverageMinutes { return "equal.circle" }
+        return familyAverageMinutes < yesterdayAverageMinutes ? "arrow.down.right" : "arrow.up.right"
+    }
+
+    private var hourlyUsage: [HourlyUsage] {
+        let calendar = Calendar.current
+        let activeIDs = Set(activeChildren.map(\.id))
+        var minutes = Array(repeating: 0, count: 24)
+
+        for session in allUsageSessions {
+            guard let childID = session.child?.id,
+                  activeIDs.contains(childID),
+                  calendar.isDateInToday(session.startedAt) else { continue }
+            minutes[calendar.component(.hour, from: session.startedAt)] += session.durationMinutes
+        }
+
+        return minutes.enumerated().map { HourlyUsage(hour: $0.offset, minutes: $0.element) }
+    }
+
+    private func hourLabel(_ hour: Int) -> String {
+        switch hour {
+        case 0: "12 AM"
+        case 6: "6 AM"
+        case 12: "12 PM"
+        case 18: "6 PM"
+        case 23: "12 AM"
+        default: ""
+        }
+    }
+
+    private func compactDuration(_ minutes: Int) -> String {
+        let hours = minutes / 60
+        let remainder = minutes % 60
+        if hours == 0 { return "\(remainder)m" }
+        if remainder == 0 { return "\(hours)h" }
+        return "\(hours)h \(remainder)m"
+    }
+
+    private func limitLine(for summary: DailyUsageSummary) -> String {
+        if summary.overMinutes > 0 {
+            return "\(compactDuration(summary.overMinutes)) over / \(compactDuration(summary.limitMinutes)) limit"
+        }
+        return "\(compactDuration(summary.remainingMinutes)) remaining / \(compactDuration(summary.limitMinutes))"
     }
 
     private func activeDevices(for child: ChildProfile) -> [Device] {
@@ -357,12 +629,6 @@ struct ContentView: View {
     private func remainingTime(until end: Date, now: Date) -> String {
         let seconds = max(Int(end.timeIntervalSince(now)), 0)
         return String(format: "%02d:%02d", seconds / 60, seconds % 60)
-    }
-
-    private func timerProgress(_ timer: ActiveScreenTimer, now: Date) -> Double {
-        let total = timer.endsAt.timeIntervalSince(timer.startedAt)
-        guard total > 0 else { return 1 }
-        return min(max(now.timeIntervalSince(timer.startedAt) / total, 0), 1)
     }
 
     private func archive(_ child: ChildProfile) {
@@ -377,6 +643,12 @@ struct ContentView: View {
         child.updatedAt = .now
         try? modelContext.save()
     }
+}
+
+private struct HourlyUsage: Identifiable {
+    let hour: Int
+    let minutes: Int
+    var id: Int { hour }
 }
 
 #Preview {

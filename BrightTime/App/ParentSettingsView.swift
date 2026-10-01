@@ -10,11 +10,13 @@ struct ParentSettingsView: View {
 
     @State private var name: String
     @State private var notificationsEnabled: Bool
+    @State private var selectedAvatar: DefaultProfileAvatar
 
     init(parent: ParentProfile) {
         self.parent = parent
         _name = State(initialValue: parent.name)
         _notificationsEnabled = State(initialValue: parent.notificationsEnabled)
+        _selectedAvatar = State(initialValue: parent.resolvedDefaultAvatar)
     }
 
     private var isNameValid: Bool {
@@ -29,6 +31,18 @@ struct ParentSettingsView: View {
         NavigationStack {
             Form {
                 Section("Parent profile") {
+                    HStack(spacing: 14) {
+                        Image(selectedAvatar.assetName)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 64, height: 64)
+                            .clipShape(Circle())
+
+                        Text("Choose the profile shown on your BrightTime home screen.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+
                     TextField("Your name", text: $name)
                         .textContentType(.name)
                         .textInputAutocapitalization(.words)
@@ -38,6 +52,12 @@ struct ParentSettingsView: View {
                             .font(.footnote)
                             .foregroundStyle(AppTheme.danger)
                     }
+
+                    DefaultAvatarPicker(
+                        avatars: DefaultProfileAvatar.allCases,
+                        selection: $selectedAvatar
+                    )
+                    .accessibilityIdentifier("settings-parent-default-avatar-picker")
                 }
 
                 Section("Preferences") {
@@ -88,6 +108,7 @@ struct ParentSettingsView: View {
 
     private func saveChanges() {
         parent.name = ParentProfile.normalizedName(name)
+        parent.defaultAvatar = selectedAvatar
         parent.notificationsEnabled = notificationsEnabled
         parent.updatedAt = .now
         try? modelContext.save()

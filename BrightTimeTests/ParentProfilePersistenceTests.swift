@@ -64,6 +64,19 @@ struct ParentProfilePersistenceTests {
         #expect(ParentProfile.isValidName(String(repeating: "A", count: 51)) == false)
     }
 
+    @Test("Default avatar catalog contains five choices for each gender")
+    func validatesDefaultAvatarCatalog() {
+        #expect(ChildGender.boy.avatarChoices.count == 5)
+        #expect(ChildGender.girl.avatarChoices.count == 5)
+        #expect(ChildGender.boy.avatarChoices.allSatisfy { $0.gender == .boy })
+        #expect(ChildGender.girl.avatarChoices.allSatisfy { $0.gender == .girl })
+
+        let child = ChildProfile(name: "Sam", gender: .girl, defaultAvatar: .girl4)
+        let parent = ParentProfile(name: "Alex", defaultAvatar: .boy3)
+        #expect(child.resolvedDefaultAvatar == .girl4)
+        #expect(parent.resolvedDefaultAvatar == .boy3)
+    }
+
     @Test("A child is linked to its parent and persists")
     func storesChildForParent() throws {
         let configuration = ModelConfiguration(isStoredInMemoryOnly: true)

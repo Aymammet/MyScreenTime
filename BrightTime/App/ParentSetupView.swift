@@ -6,6 +6,7 @@ struct ParentSetupView: View {
 
     @State private var name = ""
     @State private var notificationsEnabled = true
+    @State private var selectedAvatar: DefaultProfileAvatar = .boy1
     @FocusState private var isNameFocused: Bool
 
     private var normalizedName: String {
@@ -35,6 +36,18 @@ struct ParentSetupView: View {
                     Text("Parent profile")
                 } footer: {
                     Text("This name is used only to personalize your BrightTime experience.")
+                }
+
+                Section {
+                    DefaultAvatarPicker(
+                        avatars: DefaultProfileAvatar.allCases,
+                        selection: $selectedAvatar
+                    )
+                    .accessibilityIdentifier("parent-default-avatar-picker")
+                } header: {
+                    Text("Choose your profile photo")
+                } footer: {
+                    Text("You can change this later in Parent Settings.")
                 }
 
                 Section("Preferences") {
@@ -68,7 +81,8 @@ struct ParentSetupView: View {
         let profile = ParentProfile(
             name: normalizedName,
             notificationsEnabled: notificationsEnabled,
-            timeZoneIdentifier: TimeZone.current.identifier
+            timeZoneIdentifier: TimeZone.current.identifier,
+            defaultAvatar: selectedAvatar
         )
 
         modelContext.insert(profile)

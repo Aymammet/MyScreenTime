@@ -34,6 +34,7 @@
 - [x] Add household-device and child-device analysis with average comparisons.
 - [x] Add Daily Insights layout and source-metadata structure to all Analysis destinations.
 - [x] Rename the application, Xcode targets, schemes, and documentation to BrightTime.
+- [x] Add five boy and five girl default avatars selectable by parents and children, plus child photos from the phone.
 - [ ] Add a daily insights and family screen-time news section with source information.
 - [ ] Begin Phase 6 with in-app limit notifications.
 
@@ -359,6 +360,8 @@ These are intentionally outside the initial MVP:
 - [x] Add analysis charts and previous-period comparisons.
 - [x] Add shared household devices and child-owned device assignment.
 - [x] Add household-device and per-child device averages with previous-period comparisons.
+- [x] Add device creation to the Devices tab with child/shared ownership and weekly most-used-by bars.
+- [x] Seed seven completed days of varied simulator usage for every active child without overwriting manual history.
 - [ ] Add the sourced daily statistics and news section at the bottom of Analysis.
 - [ ] Begin Phase 6 with in-app limit notifications.
 

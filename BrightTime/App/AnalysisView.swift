@@ -5,7 +5,8 @@ import SwiftUI
 
 enum AnalysisDestination: String, CaseIterable, Identifiable {
     case home = "Home"
-    case analytics = "Analytics"
+    case weekly = "Weekly"
+    case monthly = "Monthly"
     case devices = "Devices"
     case children = "Children"
 
@@ -14,7 +15,8 @@ enum AnalysisDestination: String, CaseIterable, Identifiable {
     var systemImage: String {
         switch self {
         case .home: "house.fill"
-        case .analytics: "chart.xyaxis.line"
+        case .weekly: "chart.bar.fill"
+        case .monthly: "calendar"
         case .devices: "display.2"
         case .children: "person.2.fill"
         }
@@ -38,7 +40,7 @@ struct AnalysisView: View {
     let destination: AnalysisDestination
 
     @State private var period: AnalysisPeriod = .week
-    @State private var analyticsScope: AnalyticsScope = .weekly
+    @State private var isAddingDevice = false
 
     private var weeklyAnalysis: PeriodAnalysis {
         AnalysisCalculator.analyze(
@@ -65,32 +67,25 @@ struct AnalysisView: View {
         .tint(AppTheme.primary)
         .navigationTitle(destination.rawValue)
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $isAddingDevice) {
+            DeviceFormView(children: activeChildren)
+        }
     }
 
     @ViewBuilder
     private var selectedAnalysis: some View {
         switch destination {
-        case .home: analyticsTab
-        case .analytics: analyticsTab
+        case .home: analysisTab(scope: .weekly)
+        case .weekly: analysisTab(scope: .weekly)
+        case .monthly: analysisTab(scope: .monthly)
         case .devices: deviceAnalysisTab
         case .children: childAnalysisTab
         }
     }
 
-    private var analyticsTab: some View {
+    private func analysisTab(scope: AnalyticsScope) -> some View {
         List {
-            Section {
-                Picker("Analytics range", selection: $analyticsScope) {
-                    ForEach(AnalyticsScope.allCases) { scope in
-                        Text(scope.rawValue).tag(scope)
-                    }
-                }
-                .pickerStyle(.segmented)
-            }
-            .listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 0))
-            .listRowBackground(Color.clear)
-
-            switch analyticsScope {
+            switch scope {
             case .weekly:
                 Section {
                     statTilesRow(for: weeklyAnalysis, totalLabel: "Week total")
@@ -129,7 +124,6 @@ struct AnalysisView: View {
         .scrollContentBackground(.hidden)
         .background(AppTheme.background)
         .contentMargins(.bottom, 100, for: .scrollContent)
-        .animation(.easeInOut(duration: 0.25), value: analyticsScope)
     }
 
     private var childAnalysisTab: some View {
@@ -190,6 +184,21 @@ struct AnalysisView: View {
 
     private var deviceAnalysisTab: some View {
         List {
+            Section {
+                Button {
+                    isAddingDevice = true
+                } label: {
+                    Label("Add new device", systemImage: "plus.circle.fill")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .accessibilityIdentifier("devices-add-device-button")
+            }
+            .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 4, trailing: 0))
+            .listRowBackground(Color.clear)
+
             periodPicker
 
             Section("Device analysis") {
@@ -201,14 +210,7 @@ struct AnalysisView: View {
                     )
                 } else {
                     ForEach(activeDevices) { device in
-                        let deviceAnalysis = analysis(for: device)
-                        analysisCard(
-                            title: device.name,
-                            subtitle: device.isShared ? "Shared household" : device.child?.name,
-                            icon: device.kind.systemImage,
-                            iconColor: AppTheme.color(forDeviceID: device.id),
-                            analysis: deviceAnalysis
-                        )
+                        deviceAnalysisCard(device)
                         .padding(18)
                         .background(AppTheme.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
                         .shadow(color: .black.opacity(0.04), radius: 2, y: 1)
@@ -455,6 +457,108 @@ struct AnalysisView: View {
         )
     }
 
+    private func deviceAnalysisCard(_ device: Device) -> some View {
+        let deviceAnalysis = analysis(for: device)
+        let weeklyUsers = weeklyUsageByChild(for: device)
+
+        return VStack(alignment: .leading, spacing: 14) {
+            analysisCard(
+                title: device.name,
+                subtitle: device.isShared ? "Shared household" : "Used by \(device.child?.name ?? "Unassigned")",
+                icon: device.kind.systemImage,
+                iconColor: AppTheme.color(forDeviceID: device.id),
+                analysis: deviceAnalysis
+            )
+
+            Divider()
+
+            weeklyUsersBar(weeklyUsers)
+        }
+        .accessibilityIdentifier("device-analysis-card-\(device.id.uuidString)")
+    }
+
+    @ViewBuilder
+    private func weeklyUsersBar(_ points: [ChildDeviceUsage]) -> some View {
+        if let leader = points.first {
+            let totalMinutes = points.reduce(0) { $0 + $1.minutes }
+
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text("Most used this week")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(AppTheme.textSecondary)
+                    Spacer()
+                    Text("\(leader.child.name) · \(UsageAggregator.format(minutes: leader.minutes))")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(AppTheme.primaryDeep)
+                }
+
+                GeometryReader { geometry in
+                    let spacing = CGFloat(max(points.count - 1, 0)) * 3
+                    let usableWidth = max(geometry.size.width - spacing, 1)
+
+                    HStack(spacing: 3) {
+                        ForEach(points) { point in
+                            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                                .fill(color(for: point.child))
+                                .frame(width: usableWidth * CGFloat(point.minutes) / CGFloat(totalMinutes))
+                        }
+                    }
+                }
+                .frame(height: 10)
+
+                HStack(spacing: 12) {
+                    ForEach(points.prefix(3)) { point in
+                        HStack(spacing: 4) {
+                            Circle()
+                                .fill(color(for: point.child))
+                                .frame(width: 7, height: 7)
+                            Text("\(point.child.name) \(UsageAggregator.format(minutes: point.minutes))")
+                                .lineLimit(1)
+                        }
+                    }
+                }
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(AppTheme.textSecondary)
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Weekly usage by child")
+            .accessibilityValue("\(leader.child.name) used this device most, for \(UsageAggregator.format(minutes: leader.minutes))")
+        } else {
+            HStack(spacing: 7) {
+                Image(systemName: "chart.bar.xaxis")
+                Text("No usage recorded this week")
+            }
+            .font(.caption)
+            .foregroundStyle(AppTheme.textSecondary)
+        }
+    }
+
+    private func weeklyUsageByChild(for device: Device) -> [ChildDeviceUsage] {
+        guard let week = Calendar.current.dateInterval(of: .weekOfYear, for: Date.now) else { return [] }
+
+        return activeChildren.compactMap { child in
+            let minutes = sessions
+                .filter {
+                    $0.device?.id == device.id
+                        && $0.child?.id == child.id
+                        && week.contains($0.startedAt)
+                }
+                .reduce(0) { $0 + $1.durationMinutes }
+            return minutes > 0 ? ChildDeviceUsage(child: child, minutes: minutes) : nil
+        }
+        .sorted { lhs, rhs in
+            if lhs.minutes != rhs.minutes { return lhs.minutes > rhs.minutes }
+            return lhs.child.name.localizedCaseInsensitiveCompare(rhs.child.name) == .orderedAscending
+        }
+    }
+
+    private func color(for child: ChildProfile) -> Color {
+        let palette = [AppTheme.primary, AppTheme.rose, AppTheme.lavender, AppTheme.warning, AppTheme.success]
+        let index = activeChildren.firstIndex(where: { $0.id == child.id }) ?? 0
+        return palette[index % palette.count]
+    }
+
     private func devicesAvailable(to child: ChildProfile) -> [Device] {
         devices
             .filter { $0.isActive && $0.isAvailable(to: child.id) }
@@ -561,6 +665,12 @@ struct AnalysisView: View {
     private func emptyChart(_ message: String) -> some View {
         ContentUnavailableView("Not enough data", systemImage: "chart.bar.xaxis", description: Text(message))
     }
+}
+
+private struct ChildDeviceUsage: Identifiable {
+    let child: ChildProfile
+    let minutes: Int
+    var id: UUID { child.id }
 }
 
 private struct DailyInsightsSection: View {

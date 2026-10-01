@@ -55,28 +55,31 @@ private struct FamilyShellView: View {
                         destination = item
                     }
                 } label: {
-                    VStack(spacing: 5) {
-                        Capsule()
-                            .fill(destination == item ? AppTheme.primary : Color.clear)
-                            .frame(width: 34, height: 3)
-
+                    VStack(spacing: 6) {
                         Image(systemName: item.systemImage)
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundStyle(destination == item ? .white : .secondary)
-                            .frame(width: 38, height: 38)
-                            .background {
-                                if destination == item {
-                                    Circle()
-                                        .fill(AppTheme.primary)
-                                        .matchedGeometryEffect(id: "tab-indicator", in: tabIndicator)
-                                }
-                            }
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundStyle(destination == item ? .white : AppTheme.textTertiary)
+                            .frame(height: 25)
 
                         Text(item.rawValue)
-                            .font(.caption2.weight(destination == item ? .semibold : .medium))
-                            .foregroundStyle(destination == item ? AppTheme.primary : .secondary)
+                            .font(.caption2.weight(destination == item ? .bold : .medium))
+                            .foregroundStyle(destination == item ? .white : AppTheme.textSecondary)
                     }
-                    .frame(maxWidth: .infinity, minHeight: 66)
+                    .frame(maxWidth: .infinity, minHeight: 58)
+                    .background {
+                        if destination == item {
+                            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                                .fill(
+                                    LinearGradient(
+                                        colors: [AppTheme.primary, AppTheme.lavender],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .matchedGeometryEffect(id: "tab-indicator", in: tabIndicator)
+                                .shadow(color: AppTheme.primary.opacity(0.24), radius: 8, y: 4)
+                        }
+                    }
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -84,14 +87,13 @@ private struct FamilyShellView: View {
                 .accessibilityAddTraits(destination == item ? .isSelected : [])
             }
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 8)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 32, style: .continuous))
+        .padding(8)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 30, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 32, style: .continuous)
                 .stroke(.white.opacity(0.75), lineWidth: 1)
         }
-        .shadow(color: .black.opacity(0.12), radius: 16, y: 7)
+        .shadow(color: AppTheme.primaryDeep.opacity(0.12), radius: 18, y: 8)
         .padding(.horizontal, 12)
         .padding(.top, 6)
         .padding(.bottom, 4)

@@ -1,3 +1,4 @@
+import PhotosUI
 import SwiftData
 import SwiftUI
 
@@ -10,6 +11,10 @@ struct ChildFormView: View {
     let child: ChildProfile?
 
     @State private var name: String
+    @State private var selectedGender: ChildGender
+    @State private var selectedAvatar: DefaultProfileAvatar
+    @State private var selectedPhoto: PhotosPickerItem?
+    @State private var photoData: Data?
     @State private var dailyLimitMinutes: Int
     @State private var usesSchedule: Bool
     @State private var weekdayLimitMinutes: Int
@@ -21,6 +26,9 @@ struct ChildFormView: View {
         self.parent = parent
         self.child = child
         _name = State(initialValue: child?.name ?? "")
+        _selectedGender = State(initialValue: child?.resolvedGender ?? .boy)
+        _selectedAvatar = State(initialValue: child?.resolvedDefaultAvatar ?? .boy1)
+        _photoData = State(initialValue: child?.profilePhotoData)
         _dailyLimitMinutes = State(initialValue: child?.dailyLimitMinutes ?? 120)
         _usesSchedule = State(initialValue: child?.weekdayLimitMinutes != nil && child?.weekendLimitMinutes != nil)
         _weekdayLimitMinutes = State(initialValue: child?.weekdayLimitMinutes ?? child?.dailyLimitMinutes ?? 120)
@@ -54,6 +62,24 @@ struct ChildFormView: View {
         NavigationStack {
             Form {
                 Section {
+                    HStack(spacing: 16) {
+                        profileAvatar
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            if photoData == nil {
+                                PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                                    Label("Choose photo", systemImage: "photo")
+                                }
+                            } else {
+                                PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                                    Label("Change photo", systemImage: "photo")
+                                }
+                                Button("Use default", role: .destructive) { photoData = nil }
+                                    .font(.caption)
+                            }
+                        }
+                    }
+
                     TextField("Child's name", text: $name)
                         .textContentType(.name)
                         .textInputAutocapitalization(.words)
@@ -69,17 +95,27 @@ struct ChildFormView: View {
                 }
 
                 Section {
-                    HStack(spacing: 14) {
-                        ZStack {
-                            Circle().fill(selectedColor.color.opacity(0.18))
-                            Text(name.trimmingCharacters(in: .whitespacesAndNewlines).first.map { String($0).uppercased() } ?? "?")
-                                .font(.system(size: 20, weight: .bold))
-                                .foregroundStyle(selectedColor.color)
+                    Picker("Gender", selection: $selectedGender) {
+                        ForEach(ChildGender.allCases) { gender in
+                            Text(gender.title).tag(gender)
                         }
-                        .frame(width: 48, height: 48)
-
-                        ColorSwatchPicker(selection: $selectedColor)
                     }
+                    .pickerStyle(.segmented)
+                    .accessibilityIdentifier("child-gender-picker")
+
+                    DefaultAvatarPicker(
+                        avatars: selectedGender.avatarChoices,
+                        selection: $selectedAvatar
+                    )
+                    .accessibilityIdentifier("child-default-avatar-picker")
+                } header: {
+                    Text("Default profile photo")
+                } footer: {
+                    Text("BrightTime uses the matching default avatar until you choose a photo from this phone.")
+                }
+
+                Section {
+                    ColorSwatchPicker(selection: $selectedColor)
                     .padding(.vertical, 4)
                     .accessibilityIdentifier("child-color-picker")
                 } header: {
@@ -137,7 +173,36 @@ struct ChildFormView: View {
             } message: {
                 Text(saveErrorMessage ?? "Please try again.")
             }
+            .onChange(of: selectedPhoto) { _, item in
+                Task {
+                    guard let data = try? await item?.loadTransferable(type: Data.self) else { return }
+                    photoData = resizedPhotoData(data)
+                }
+            }
+            .onChange(of: selectedGender) { _, gender in
+                if selectedAvatar.gender != gender {
+                    selectedAvatar = gender.avatarChoices[0]
+                }
+            }
         }
+    }
+
+    private var profileAvatar: some View {
+        Group {
+            if let photoData, let image = UIImage(data: photoData) {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                Image(selectedAvatar.assetName)
+                    .resizable()
+                    .scaledToFill()
+            }
+        }
+        .frame(width: 72, height: 72)
+        .clipShape(Circle())
+        .overlay { Circle().stroke(.white, lineWidth: 2) }
+        .shadow(color: selectedColor.color.opacity(0.2), radius: 5, y: 2)
     }
 
     private func validationMessage(_ message: String) -> some View {
@@ -161,9 +226,22 @@ struct ChildFormView: View {
         }
     }
 
+    private func resizedPhotoData(_ data: Data) -> Data? {
+        guard let source = UIImage(data: data) else { return nil }
+        let scale = min(512 / max(source.size.width, source.size.height), 1)
+        let size = CGSize(width: source.size.width * scale, height: source.size.height * scale)
+        let renderer = UIGraphicsImageRenderer(size: size)
+        return renderer.jpegData(withCompressionQuality: 0.82) { _ in
+            source.draw(in: CGRect(origin: .zero, size: size))
+        }
+    }
+
     private func saveChild() {
         if let child {
             child.name = normalizedName
+            child.gender = selectedGender
+            child.defaultAvatar = selectedAvatar
+            child.profilePhotoData = photoData
             child.dailyLimitMinutes = dailyLimitMinutes
             child.weekdayLimitMinutes = usesSchedule ? weekdayLimitMinutes : nil
             child.weekendLimitMinutes = usesSchedule ? weekendLimitMinutes : nil
@@ -176,6 +254,9 @@ struct ChildFormView: View {
                     dailyLimitMinutes: dailyLimitMinutes,
                     weekdayLimitMinutes: usesSchedule ? weekdayLimitMinutes : nil,
                     weekendLimitMinutes: usesSchedule ? weekendLimitMinutes : nil,
+                    profilePhotoData: photoData,
+                    gender: selectedGender,
+                    defaultAvatar: selectedAvatar,
                     colorRawValue: selectedColor.rawValue,
                     parent: parent
                 )
