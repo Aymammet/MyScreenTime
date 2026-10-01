@@ -20,7 +20,7 @@ jobs:
       - name: Build and test
         run: |
           xcodebuild test \
-            -project MyScreenTime.xcodeproj \
-            -scheme MyScreenTime \
+            -project BrightTime.xcodeproj \
+            -scheme BrightTime \
             -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=latest' \
             CODE_SIGNING_ALLOWED=NO

@@ -1,7 +1,7 @@
 import Foundation
 import SwiftData
 import Testing
-@testable import MyScreenTime
+@testable import BrightTime
 
 @MainActor
 struct ParentProfilePersistenceTests {

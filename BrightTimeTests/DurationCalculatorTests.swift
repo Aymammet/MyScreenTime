@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import MyScreenTime
+@testable import BrightTime
 
 struct DurationCalculatorTests {
     @Test("A 30-minute session returns 30 minutes")

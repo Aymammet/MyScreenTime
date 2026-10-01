@@ -1,6 +1,6 @@
 import XCTest
 
-final class MyScreenTimeUITests: XCTestCase {
+final class BrightTimeUITests: XCTestCase {
     override func setUpWithError() throws {
         continueAfterFailure = false
     }
@@ -18,7 +18,7 @@ final class MyScreenTimeUITests: XCTestCase {
         nameField.typeText("Alex")
         app.buttons["save-parent-profile"].tap()
 
-        XCTAssertTrue(app.navigationBars["MyScreenTime"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["BrightTime"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Welcome, Alex"].exists)
 
         for tab in ["weekly", "monthly", "devices", "children"] {
@@ -28,7 +28,7 @@ final class MyScreenTimeUITests: XCTestCase {
             XCTAssertTrue(app.descendants(matching: .any)["daily-insights-empty"].waitForExistence(timeout: 5))
         }
         app.buttons["analysis-home-tab"].tap()
-        XCTAssertTrue(app.navigationBars["MyScreenTime"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["BrightTime"].waitForExistence(timeout: 5))
 
         app.buttons["add-child-button"].tap()
         XCTAssertTrue(app.navigationBars["Add Child"].waitForExistence(timeout: 5))

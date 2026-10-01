@@ -34,7 +34,7 @@ struct ParentSetupView: View {
                 } header: {
                     Text("Parent profile")
                 } footer: {
-                    Text("This name is used only to personalize your MyScreenTime experience.")
+                    Text("This name is used only to personalize your BrightTime experience.")
                 }
 
                 Section("Preferences") {

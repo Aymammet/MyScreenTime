@@ -2,7 +2,7 @@ import SwiftData
 import SwiftUI
 
 @main
-struct MyScreenTimeApp: App {
+struct BrightTimeApp: App {
     private let modelContainer: ModelContainer
 
     init() {
@@ -18,7 +18,7 @@ struct MyScreenTimeApp: App {
                 configurations: configuration
             )
         } catch {
-            fatalError("Unable to create the MyScreenTime data store: \(error)")
+            fatalError("Unable to create the BrightTime data store: \(error)")
         }
     }
 

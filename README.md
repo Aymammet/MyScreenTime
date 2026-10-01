@@ -1,6 +1,6 @@
-# MyScreenTime
+# BrightTime
 
-MyScreenTime is a native iOS application that helps parents track and manage children's daily screen time across phones, tablets, computers, Chromebooks, televisions, and game consoles.
+BrightTime is a native iOS application that helps parents track and manage children's daily screen time across phones, tablets, computers, Chromebooks, televisions, and game consoles.
 
 ## Technology
 
@@ -15,8 +15,8 @@ SwiftData provides local persistence. Optional iCloud synchronization can be add
 
 ## Open and run in Xcode
 
-1. Open `MyScreenTime.xcodeproj` in Xcode.
-2. Select the **MyScreenTime** scheme.
+1. Open `BrightTime.xcodeproj` in Xcode.
+2. Select the **BrightTime** scheme.
 3. Select an iPhone simulator, such as **iPhone 17 Pro**.
 4. Press **Run** (`⌘R`).
 5. Create the local parent profile shown on first launch.
@@ -43,8 +43,8 @@ Press **Test** (`⌘U`) to run:
 
 ```bash
 xcodebuild test \
-  -project MyScreenTime.xcodeproj \
-  -scheme MyScreenTime \
+  -project BrightTime.xcodeproj \
+  -scheme BrightTime \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=latest' \
   -derivedDataPath .build/DerivedData \
   CODE_SIGNING_ALLOWED=NO
@@ -53,13 +53,13 @@ xcodebuild test \
 ## Project structure
 
 ```text
-MyScreenTime/App/          App entry point and SwiftUI screens
-MyScreenTime/Design/       Colors and reusable design values
-MyScreenTime/Models/       Child, device, and usage-session models
-MyScreenTime/Services/     Business calculations and app services
-MyScreenTime/Resources/    Asset catalogs and bundled resources
-MyScreenTimeTests/         Unit tests
-MyScreenTimeUITests/       Simulator UI tests
+BrightTime/App/          App entry point and SwiftUI screens
+BrightTime/Design/       Colors and reusable design values
+BrightTime/Models/       Child, device, and usage-session models
+BrightTime/Services/     Business calculations and app services
+BrightTime/Resources/    Asset catalogs and bundled resources
+BrightTimeTests/         Unit tests
+BrightTimeUITests/       Simulator UI tests
 docs/                      Product decisions and wireframes
 ```
 

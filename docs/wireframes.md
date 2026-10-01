@@ -1,4 +1,4 @@
-# MyScreenTime iOS MVP Wireframes
+# BrightTime iOS MVP Wireframes
 
 These low-fidelity wireframes define information hierarchy and primary actions. They are not final visual designs.
 
@@ -6,7 +6,7 @@ These low-fidelity wireframes define information hierarchy and primary actions. 
 
 ```text
 ┌─────────────────────────────────────────────────────────────┐
-│ MyScreenTime                     Analysis   Alerts   Profile │
+│ BrightTime                     Analysis   Alerts   Profile │
 ├─────────────────────────────────────────────────────────────┤
 │ Today                                      + Add screen time │
 │                                                             │

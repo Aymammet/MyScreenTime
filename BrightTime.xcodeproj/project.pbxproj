@@ -1,0 +1,617 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 71;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A10000000000000000000001 /* BrightTimeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000001 /* BrightTimeApp.swift */; };
+		A10000000000000000000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000002 /* ContentView.swift */; };
+		A10000000000000000000003 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000003 /* AppTheme.swift */; };
+		A10000000000000000000004 /* ChildProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000004 /* ChildProfile.swift */; };
+		A10000000000000000000005 /* Device.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000005 /* Device.swift */; };
+		A10000000000000000000006 /* UsageSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000006 /* UsageSession.swift */; };
+		A10000000000000000000007 /* DurationCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000007 /* DurationCalculator.swift */; };
+		A10000000000000000000008 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000008 /* Assets.xcassets */; };
+		A10000000000000000000009 /* DurationCalculatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000009 /* DurationCalculatorTests.swift */; };
+		A1000000000000000000000A /* BrightTimeUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000A /* BrightTimeUITests.swift */; };
+		A1000000000000000000000B /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000E /* RootView.swift */; };
+		A1000000000000000000000C /* ParentSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000F /* ParentSetupView.swift */; };
+		A1000000000000000000000D /* ParentSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000010 /* ParentSettingsView.swift */; };
+		A1000000000000000000000E /* ParentProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000011 /* ParentProfile.swift */; };
+		A1000000000000000000000F /* ParentProfilePersistenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000012 /* ParentProfilePersistenceTests.swift */; };
+		A10000000000000000000010 /* ChildFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000013 /* ChildFormView.swift */; };
+		A10000000000000000000011 /* ChildDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000014 /* ChildDetailView.swift */; };
+		A10000000000000000000012 /* DeviceFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000015 /* DeviceFormView.swift */; };
+		A10000000000000000000013 /* UsageEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000016 /* UsageEntryView.swift */; };
+		A10000000000000000000014 /* UsageAggregator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000017 /* UsageAggregator.swift */; };
+		A10000000000000000000015 /* ScreenTimerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000018 /* ScreenTimerManager.swift */; };
+		A10000000000000000000016 /* StartTimerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000019 /* StartTimerView.swift */; };
+		A10000000000000000000017 /* ChildAvatarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001A /* ChildAvatarView.swift */; };
+		A10000000000000000000018 /* ChildSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001B /* ChildSettingsView.swift */; };
+		A10000000000000000000019 /* AnalysisCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001C /* AnalysisCalculator.swift */; };
+		A1000000000000000000001A /* AnalysisView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001D /* AnalysisView.swift */; };
+		A1000000000000000000001B /* DailyInsightsCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001E /* DailyInsightsCatalog.swift */; };
+		A1000000000000000000001C /* RingProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001F /* RingProgressView.swift */; };
+		A1000000000000000000001D /* DeviceUsageChip.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000020 /* DeviceUsageChip.swift */; };
+		A1000000000000000000001E /* ChildColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000021 /* ChildColor.swift */; };
+		A1000000000000000000001F /* ColorSwatchPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000022 /* ColorSwatchPicker.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		C10000000000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D10000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E10000000000000000000001;
+			remoteInfo = BrightTime;
+		};
+		C10000000000000000000002 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D10000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E10000000000000000000001;
+			remoteInfo = BrightTime;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		B10000000000000000000001 /* BrightTimeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrightTimeApp.swift; sourceTree = "<group>"; };
+		B10000000000000000000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		B10000000000000000000003 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
+		B10000000000000000000004 /* ChildProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChildProfile.swift; sourceTree = "<group>"; };
+		B10000000000000000000005 /* Device.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Device.swift; sourceTree = "<group>"; };
+		B10000000000000000000006 /* UsageSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageSession.swift; sourceTree = "<group>"; };
+		B10000000000000000000007 /* DurationCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DurationCalculator.swift; sourceTree = "<group>"; };
+		B10000000000000000000008 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		B10000000000000000000009 /* DurationCalculatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DurationCalculatorTests.swift; sourceTree = "<group>"; };
+		B1000000000000000000000A /* BrightTimeUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrightTimeUITests.swift; sourceTree = "<group>"; };
+		B1000000000000000000000B /* BrightTime.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BrightTime.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B1000000000000000000000C /* BrightTimeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BrightTimeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B1000000000000000000000D /* BrightTimeUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BrightTimeUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B1000000000000000000000E /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		B1000000000000000000000F /* ParentSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParentSetupView.swift; sourceTree = "<group>"; };
+		B10000000000000000000010 /* ParentSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParentSettingsView.swift; sourceTree = "<group>"; };
+		B10000000000000000000011 /* ParentProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParentProfile.swift; sourceTree = "<group>"; };
+		B10000000000000000000012 /* ParentProfilePersistenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParentProfilePersistenceTests.swift; sourceTree = "<group>"; };
+		B10000000000000000000013 /* ChildFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChildFormView.swift; sourceTree = "<group>"; };
+		B10000000000000000000014 /* ChildDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChildDetailView.swift; sourceTree = "<group>"; };
+		B10000000000000000000015 /* DeviceFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceFormView.swift; sourceTree = "<group>"; };
+		B10000000000000000000016 /* UsageEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageEntryView.swift; sourceTree = "<group>"; };
+		B10000000000000000000017 /* UsageAggregator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageAggregator.swift; sourceTree = "<group>"; };
+		B10000000000000000000018 /* ScreenTimerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenTimerManager.swift; sourceTree = "<group>"; };
+		B10000000000000000000019 /* StartTimerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartTimerView.swift; sourceTree = "<group>"; };
+		B1000000000000000000001A /* ChildAvatarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChildAvatarView.swift; sourceTree = "<group>"; };
+		B1000000000000000000001B /* ChildSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChildSettingsView.swift; sourceTree = "<group>"; };
+		B1000000000000000000001C /* AnalysisCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalysisCalculator.swift; sourceTree = "<group>"; };
+		B1000000000000000000001D /* AnalysisView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalysisView.swift; sourceTree = "<group>"; };
+		B1000000000000000000001E /* DailyInsightsCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyInsightsCatalog.swift; sourceTree = "<group>"; };
+		B1000000000000000000001F /* RingProgressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RingProgressView.swift; sourceTree = "<group>"; };
+		B10000000000000000000020 /* DeviceUsageChip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceUsageChip.swift; sourceTree = "<group>"; };
+		B10000000000000000000021 /* ChildColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChildColor.swift; sourceTree = "<group>"; };
+		B10000000000000000000022 /* ColorSwatchPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorSwatchPicker.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		F10000000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F10000000000000000000002 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F10000000000000000000003 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		D10000000000000000000002 = {
+			isa = PBXGroup;
+			children = (
+				D10000000000000000000003 /* BrightTime */,
+				D10000000000000000000009 /* BrightTimeTests */,
+				D1000000000000000000000A /* BrightTimeUITests */,
+				D1000000000000000000000B /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		D10000000000000000000003 /* BrightTime */ = {
+			isa = PBXGroup;
+			children = (
+				D10000000000000000000004 /* App */,
+				D10000000000000000000005 /* Design */,
+				D10000000000000000000006 /* Models */,
+				D10000000000000000000007 /* Services */,
+				D10000000000000000000008 /* Resources */,
+			);
+			path = BrightTime;
+			sourceTree = "<group>";
+		};
+		D10000000000000000000004 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				B10000000000000000000001 /* BrightTimeApp.swift */,
+				B1000000000000000000000E /* RootView.swift */,
+				B10000000000000000000002 /* ContentView.swift */,
+				B1000000000000000000000F /* ParentSetupView.swift */,
+				B10000000000000000000010 /* ParentSettingsView.swift */,
+				B10000000000000000000013 /* ChildFormView.swift */,
+				B10000000000000000000014 /* ChildDetailView.swift */,
+				B10000000000000000000015 /* DeviceFormView.swift */,
+				B10000000000000000000016 /* UsageEntryView.swift */,
+				B10000000000000000000019 /* StartTimerView.swift */,
+				B1000000000000000000001A /* ChildAvatarView.swift */,
+				B1000000000000000000001B /* ChildSettingsView.swift */,
+				B1000000000000000000001D /* AnalysisView.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		D10000000000000000000005 /* Design */ = {
+			isa = PBXGroup;
+			children = (
+				B10000000000000000000003 /* AppTheme.swift */,
+				B1000000000000000000001F /* RingProgressView.swift */,
+				B10000000000000000000020 /* DeviceUsageChip.swift */,
+				B10000000000000000000021 /* ChildColor.swift */,
+				B10000000000000000000022 /* ColorSwatchPicker.swift */,
+			);
+			path = Design;
+			sourceTree = "<group>";
+		};
+		D10000000000000000000006 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				B10000000000000000000011 /* ParentProfile.swift */,
+				B10000000000000000000004 /* ChildProfile.swift */,
+				B10000000000000000000005 /* Device.swift */,
+				B10000000000000000000006 /* UsageSession.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		D10000000000000000000007 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				B10000000000000000000007 /* DurationCalculator.swift */,
+				B10000000000000000000017 /* UsageAggregator.swift */,
+				B10000000000000000000018 /* ScreenTimerManager.swift */,
+				B1000000000000000000001C /* AnalysisCalculator.swift */,
+				B1000000000000000000001E /* DailyInsightsCatalog.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		D10000000000000000000008 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				B10000000000000000000008 /* Assets.xcassets */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		D10000000000000000000009 /* BrightTimeTests */ = {
+			isa = PBXGroup;
+			children = (
+				B10000000000000000000009 /* DurationCalculatorTests.swift */,
+				B10000000000000000000012 /* ParentProfilePersistenceTests.swift */,
+			);
+			path = BrightTimeTests;
+			sourceTree = "<group>";
+		};
+		D1000000000000000000000A /* BrightTimeUITests */ = {
+			isa = PBXGroup;
+			children = (
+				B1000000000000000000000A /* BrightTimeUITests.swift */,
+			);
+			path = BrightTimeUITests;
+			sourceTree = "<group>";
+		};
+		D1000000000000000000000B /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B1000000000000000000000B /* BrightTime.app */,
+				B1000000000000000000000C /* BrightTimeTests.xctest */,
+				B1000000000000000000000D /* BrightTimeUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		E10000000000000000000001 /* BrightTime */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E10000000000000000000011 /* Build configuration list for PBXNativeTarget "BrightTime" */;
+			buildPhases = (
+				F10000000000000000000011 /* Sources */,
+				F10000000000000000000001 /* Frameworks */,
+				F10000000000000000000021 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = BrightTime;
+			productName = BrightTime;
+			productReference = B1000000000000000000000B /* BrightTime.app */;
+			productType = "com.apple.product-type.application";
+		};
+		E10000000000000000000002 /* BrightTimeTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E10000000000000000000012 /* Build configuration list for PBXNativeTarget "BrightTimeTests" */;
+			buildPhases = (
+				F10000000000000000000012 /* Sources */,
+				F10000000000000000000002 /* Frameworks */,
+				F10000000000000000000022 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				C10000000000000000000011 /* PBXTargetDependency */,
+			);
+			name = BrightTimeTests;
+			productName = BrightTimeTests;
+			productReference = B1000000000000000000000C /* BrightTimeTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		E10000000000000000000003 /* BrightTimeUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E10000000000000000000013 /* Build configuration list for PBXNativeTarget "BrightTimeUITests" */;
+			buildPhases = (
+				F10000000000000000000013 /* Sources */,
+				F10000000000000000000003 /* Frameworks */,
+				F10000000000000000000023 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				C10000000000000000000012 /* PBXTargetDependency */,
+			);
+			name = BrightTimeUITests;
+			productName = BrightTimeUITests;
+			productReference = B1000000000000000000000D /* BrightTimeUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		D10000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2610;
+				LastUpgradeCheck = 2610;
+				TargetAttributes = {
+					E10000000000000000000001 = {
+						CreatedOnToolsVersion = 26.1;
+					};
+					E10000000000000000000002 = {
+						CreatedOnToolsVersion = 26.1;
+						TestTargetID = E10000000000000000000001;
+					};
+					E10000000000000000000003 = {
+						CreatedOnToolsVersion = 26.1;
+						TestTargetID = E10000000000000000000001;
+					};
+				};
+			};
+			buildConfigurationList = E10000000000000000000010 /* Build configuration list for PBXProject "BrightTime" */;
+			compatibilityVersion = "Xcode 16.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = D10000000000000000000002;
+			productRefGroup = D1000000000000000000000B /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				E10000000000000000000001 /* BrightTime */,
+				E10000000000000000000002 /* BrightTimeTests */,
+				E10000000000000000000003 /* BrightTimeUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		F10000000000000000000021 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000000000000000000008 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F10000000000000000000022 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F10000000000000000000023 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		F10000000000000000000011 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000000000000000000001 /* BrightTimeApp.swift in Sources */,
+				A1000000000000000000000B /* RootView.swift in Sources */,
+				A10000000000000000000002 /* ContentView.swift in Sources */,
+				A1000000000000000000000C /* ParentSetupView.swift in Sources */,
+				A1000000000000000000000D /* ParentSettingsView.swift in Sources */,
+				A10000000000000000000010 /* ChildFormView.swift in Sources */,
+				A10000000000000000000011 /* ChildDetailView.swift in Sources */,
+				A10000000000000000000012 /* DeviceFormView.swift in Sources */,
+				A10000000000000000000013 /* UsageEntryView.swift in Sources */,
+				A10000000000000000000014 /* UsageAggregator.swift in Sources */,
+				A10000000000000000000015 /* ScreenTimerManager.swift in Sources */,
+				A10000000000000000000016 /* StartTimerView.swift in Sources */,
+				A10000000000000000000017 /* ChildAvatarView.swift in Sources */,
+				A10000000000000000000018 /* ChildSettingsView.swift in Sources */,
+				A10000000000000000000019 /* AnalysisCalculator.swift in Sources */,
+				A1000000000000000000001A /* AnalysisView.swift in Sources */,
+				A1000000000000000000001B /* DailyInsightsCatalog.swift in Sources */,
+				A10000000000000000000003 /* AppTheme.swift in Sources */,
+				A1000000000000000000000E /* ParentProfile.swift in Sources */,
+				A10000000000000000000004 /* ChildProfile.swift in Sources */,
+				A10000000000000000000005 /* Device.swift in Sources */,
+				A10000000000000000000006 /* UsageSession.swift in Sources */,
+				A10000000000000000000007 /* DurationCalculator.swift in Sources */,
+				A1000000000000000000001C /* RingProgressView.swift in Sources */,
+				A1000000000000000000001D /* DeviceUsageChip.swift in Sources */,
+				A1000000000000000000001E /* ChildColor.swift in Sources */,
+				A1000000000000000000001F /* ColorSwatchPicker.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F10000000000000000000012 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000000000000000000009 /* DurationCalculatorTests.swift in Sources */,
+				A1000000000000000000000F /* ParentProfilePersistenceTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F10000000000000000000013 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1000000000000000000000A /* BrightTimeUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		C10000000000000000000011 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E10000000000000000000001 /* BrightTime */;
+			targetProxy = C10000000000000000000001 /* PBXContainerItemProxy */;
+		};
+		C10000000000000000000012 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E10000000000000000000001 /* BrightTime */;
+			targetProxy = C10000000000000000000002 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		E10000000000000000000101 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		E10000000000000000000102 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		E10000000000000000000111 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = BrightTime;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aymammet.BrightTime;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		E10000000000000000000112 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = BrightTime;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aymammet.BrightTime;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		E10000000000000000000121 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aymammet.BrightTimeTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/BrightTime.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/BrightTime";
+			};
+			name = Debug;
+		};
+		E10000000000000000000122 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aymammet.BrightTimeTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/BrightTime.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/BrightTime";
+			};
+			name = Release;
+		};
+		E10000000000000000000131 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aymammet.BrightTimeUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = BrightTime;
+			};
+			name = Debug;
+		};
+		E10000000000000000000132 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aymammet.BrightTimeUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = BrightTime;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		E10000000000000000000010 /* Build configuration list for PBXProject "BrightTime" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E10000000000000000000101 /* Debug */,
+				E10000000000000000000102 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E10000000000000000000011 /* Build configuration list for PBXNativeTarget "BrightTime" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E10000000000000000000111 /* Debug */,
+				E10000000000000000000112 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E10000000000000000000012 /* Build configuration list for PBXNativeTarget "BrightTimeTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E10000000000000000000121 /* Debug */,
+				E10000000000000000000122 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E10000000000000000000013 /* Build configuration list for PBXNativeTarget "BrightTimeUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E10000000000000000000131 /* Debug */,
+				E10000000000000000000132 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = D10000000000000000000001 /* Project object */;
+}

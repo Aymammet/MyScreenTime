@@ -1,4 +1,4 @@
-# MyScreenTime Development Plan
+# BrightTime Development Plan
 
 ## Progress legend
 
@@ -7,7 +7,7 @@
 
 ## Current progress
 
-- [x] Created the local MyScreenTime project folder.
+- [x] Created the local project folder.
 - [x] Initialized a Git repository with `main` as the default branch.
 - [x] Connected the project to `git@github.com:Aymammet/MyScreenTime.git`.
 - [x] Created and pushed the initial commit.
@@ -33,6 +33,7 @@
 - [x] Support shared household devices as well as devices assigned to one child.
 - [x] Add household-device and child-device analysis with average comparisons.
 - [x] Add Daily Insights layout and source-metadata structure to all Analysis destinations.
+- [x] Rename the application, Xcode targets, schemes, and documentation to BrightTime.
 - [ ] Add a daily insights and family screen-time news section with source information.
 - [ ] Begin Phase 6 with in-app limit notifications.
 
@@ -40,7 +41,7 @@
 
 ## 1. Product vision
 
-MyScreenTime is a parent-focused application for tracking and managing children's daily screen time across multiple devices. Parents can manually record usage, see remaining allowance, review trends, and receive useful limit and comparison notifications.
+BrightTime is a parent-focused application for tracking and managing children's daily screen time across multiple devices. Parents can manually record usage, see remaining allowance, review trends, and receive useful limit and comparison notifications.
 
 ## 2. Initial scope (MVP)
 

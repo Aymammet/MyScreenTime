@@ -1,8 +1,8 @@
-# MyScreenTime iOS Product Decisions
+# BrightTime iOS Product Decisions
 
 ## Platform
 
-MyScreenTime will be a native iOS and iPadOS application built and tested in Xcode. The first release targets iOS 17 or newer and uses one SwiftUI codebase for iPhone and iPad.
+BrightTime will be a native iOS and iPadOS application built and tested in Xcode. The first release targets iOS 17 or newer and uses one SwiftUI codebase for iPhone and iPad.
 
 ## Technology stack
 
