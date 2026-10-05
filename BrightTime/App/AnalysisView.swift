@@ -41,6 +41,7 @@ struct AnalysisView: View {
 
     @State private var period: AnalysisPeriod = .week
     @State private var isAddingDevice = false
+    @State private var childToEdit: ChildProfile?
 
     private var weeklyAnalysis: PeriodAnalysis {
         AnalysisCalculator.analyze(
@@ -69,6 +70,16 @@ struct AnalysisView: View {
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $isAddingDevice) {
             DeviceFormView(children: activeChildren)
+        }
+        .sheet(
+            isPresented: Binding(
+                get: { childToEdit != nil },
+                set: { if !$0 { childToEdit = nil } }
+            )
+        ) {
+            if let childToEdit, let parent = childToEdit.parent {
+                ChildFormView(parent: parent, child: childToEdit)
+            }
         }
     }
 
@@ -147,6 +158,17 @@ struct AnalysisView: View {
                                 analysis: childAnalysis
                             )
 
+                            Button {
+                                childToEdit = child
+                            } label: {
+                                Label("Edit daily limit", systemImage: "pencil")
+                                    .font(.subheadline.weight(.bold))
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.bordered)
+                            .tint(child.color.color)
+                            .accessibilityIdentifier("children-edit-limit-\(child.id.uuidString)")
+
                             let childDevices = devicesAvailable(to: child)
                             if childDevices.isEmpty {
                                 Text("No devices available for this child.")
@@ -198,8 +220,6 @@ struct AnalysisView: View {
             }
             .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 4, trailing: 0))
             .listRowBackground(Color.clear)
-
-            periodPicker
 
             Section("Device analysis") {
                 if activeDevices.isEmpty {
@@ -431,7 +451,7 @@ struct AnalysisView: View {
         )
     }
 
-    private func analysis(for device: Device) -> PeriodAnalysis {
+    private func analysis(for device: Device, period: AnalysisPeriod) -> PeriodAnalysis {
         let childIDs = device.isShared
             ? Set(activeChildren.map(\.id))
             : Set(device.child.map { [$0.id] } ?? [])
@@ -458,31 +478,44 @@ struct AnalysisView: View {
     }
 
     private func deviceAnalysisCard(_ device: Device) -> some View {
-        let deviceAnalysis = analysis(for: device)
         let weeklyUsers = weeklyUsageByChild(for: device)
+        let metrics = deviceAverageMetrics(for: device)
+        let deviceColor = AppTheme.color(forDeviceID: device.id)
 
         return VStack(alignment: .leading, spacing: 14) {
-            analysisCard(
-                title: device.name,
-                subtitle: device.isShared ? "Shared household" : "Used by \(device.child?.name ?? "Unassigned")",
-                icon: device.kind.systemImage,
-                iconColor: AppTheme.color(forDeviceID: device.id),
-                analysis: deviceAnalysis
-            )
+            HStack(spacing: 10) {
+                Image(systemName: device.kind.systemImage)
+                    .font(.headline)
+                    .foregroundStyle(deviceColor)
+                    .frame(width: 38, height: 38)
+                    .background(deviceColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(device.name)
+                        .font(.headline)
+                    Text(device.isShared ? "Shared household" : "Used by \(device.child?.name ?? "Unassigned")")
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.textSecondary)
+                }
+            }
+
+            HStack(spacing: 8) {
+                ForEach(metrics) { metric in
+                    deviceMetricTile(metric)
+                }
+            }
 
             Divider()
 
-            weeklyUsersBar(weeklyUsers)
+            weeklyUsersChart(weeklyUsers)
         }
         .accessibilityIdentifier("device-analysis-card-\(device.id.uuidString)")
     }
 
     @ViewBuilder
-    private func weeklyUsersBar(_ points: [ChildDeviceUsage]) -> some View {
+    private func weeklyUsersChart(_ points: [ChildDeviceUsage]) -> some View {
         if let leader = points.first {
-            let totalMinutes = points.reduce(0) { $0 + $1.minutes }
-
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 10) {
                 HStack {
                     Text("Most used this week")
                         .font(.caption.weight(.semibold))
@@ -493,33 +526,32 @@ struct AnalysisView: View {
                         .foregroundStyle(AppTheme.primaryDeep)
                 }
 
-                GeometryReader { geometry in
-                    let spacing = CGFloat(max(points.count - 1, 0)) * 3
-                    let usableWidth = max(geometry.size.width - spacing, 1)
-
-                    HStack(spacing: 3) {
-                        ForEach(points) { point in
-                            RoundedRectangle(cornerRadius: 5, style: .continuous)
-                                .fill(color(for: point.child))
-                                .frame(width: usableWidth * CGFloat(point.minutes) / CGFloat(totalMinutes))
+                Chart(points) { point in
+                    BarMark(
+                        x: .value("Child", point.child.name),
+                        y: .value("Minutes", point.minutes)
+                    )
+                    .foregroundStyle(color(for: point.child))
+                    .cornerRadius(5)
+                    .annotation(position: .top) {
+                        Text(UsageAggregator.format(minutes: point.minutes))
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(AppTheme.textSecondary)
+                    }
+                }
+                .chartYAxis {
+                    AxisMarks(position: .leading) { value in
+                        AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [3]))
+                            .foregroundStyle(AppTheme.textTertiary.opacity(0.25))
+                        AxisValueLabel {
+                            if let minutes = value.as(Int.self) {
+                                Text(shortMinutes(minutes))
+                            }
                         }
                     }
                 }
-                .frame(height: 10)
-
-                HStack(spacing: 12) {
-                    ForEach(points.prefix(3)) { point in
-                        HStack(spacing: 4) {
-                            Circle()
-                                .fill(color(for: point.child))
-                                .frame(width: 7, height: 7)
-                            Text("\(point.child.name) \(UsageAggregator.format(minutes: point.minutes))")
-                                .lineLimit(1)
-                        }
-                    }
-                }
-                .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(AppTheme.textSecondary)
+                .chartLegend(.hidden)
+                .frame(height: 150)
             }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Weekly usage by child")
@@ -532,6 +564,85 @@ struct AnalysisView: View {
             .font(.caption)
             .foregroundStyle(AppTheme.textSecondary)
         }
+    }
+
+    private func deviceMetricTile(_ metric: DeviceAverageMetric) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(metric.title)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(AppTheme.textSecondary)
+
+            Text(UsageAggregator.format(minutes: metric.minutes))
+                .font(.system(size: 14, weight: .bold, design: .rounded))
+                .foregroundStyle(metric.isAboveAverage ? AppTheme.success : AppTheme.primaryDeep)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+
+            Label(
+                metric.isAboveAverage ? "Above avg" : "Average",
+                systemImage: metric.isAboveAverage ? "arrow.up.right" : "minus"
+            )
+            .font(.system(size: 9, weight: .bold))
+            .foregroundStyle(metric.isAboveAverage ? AppTheme.success : AppTheme.textTertiary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(10)
+        .background(
+            metric.isAboveAverage ? AppTheme.successTint : AppTheme.background,
+            in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+        )
+    }
+
+    private func deviceAverageMetrics(for device: Device) -> [DeviceAverageMetric] {
+        let calendar = Calendar.current
+        let now = Date.now
+        let todayMinutes = UsageAggregator.totalMinutes(on: now, deviceID: device.id, sessions: sessions, calendar: calendar)
+        let priorSevenDayAverage = completedDayAverage(for: device, before: now, dayCount: 7, calendar: calendar)
+        let week = analysis(for: device, period: .week)
+        let month = analysis(for: device, period: .month)
+        let weekDays = elapsedDayCount(in: .weekOfYear, now: now, calendar: calendar)
+        let monthDays = elapsedDayCount(in: .month, now: now, calendar: calendar)
+
+        return [
+            DeviceAverageMetric(title: "TODAY", minutes: todayMinutes, isAboveAverage: todayMinutes > priorSevenDayAverage),
+            DeviceAverageMetric(
+                title: "WEEKLY AVG",
+                minutes: week.dailyAverageMinutes,
+                isAboveAverage: week.dailyAverageMinutes > week.previousMinutes / max(weekDays, 1)
+            ),
+            DeviceAverageMetric(
+                title: "MONTHLY AVG",
+                minutes: month.dailyAverageMinutes,
+                isAboveAverage: month.dailyAverageMinutes > month.previousMinutes / max(monthDays, 1)
+            )
+        ]
+    }
+
+    private func completedDayAverage(
+        for device: Device,
+        before date: Date,
+        dayCount: Int,
+        calendar: Calendar
+    ) -> Int {
+        let todayStart = calendar.startOfDay(for: date)
+        guard let start = calendar.date(byAdding: .day, value: -dayCount, to: todayStart) else { return 0 }
+        let total = sessions
+            .filter { $0.device?.id == device.id && $0.startedAt >= start && $0.startedAt < todayStart }
+            .reduce(0) { $0 + $1.durationMinutes }
+        return total / max(dayCount, 1)
+    }
+
+    private func elapsedDayCount(
+        in component: Calendar.Component,
+        now: Date,
+        calendar: Calendar
+    ) -> Int {
+        guard let interval = calendar.dateInterval(of: component, for: now) else { return 1 }
+        return max((calendar.dateComponents([.day], from: interval.start, to: calendar.startOfDay(for: now)).day ?? 0) + 1, 1)
+    }
+
+    private func shortMinutes(_ minutes: Int) -> String {
+        minutes >= 60 ? "\(minutes / 60)h" : "\(minutes)m"
     }
 
     private func weeklyUsageByChild(for device: Device) -> [ChildDeviceUsage] {
@@ -671,6 +782,13 @@ private struct ChildDeviceUsage: Identifiable {
     let child: ChildProfile
     let minutes: Int
     var id: UUID { child.id }
+}
+
+private struct DeviceAverageMetric: Identifiable {
+    let title: String
+    let minutes: Int
+    let isAboveAverage: Bool
+    var id: String { title }
 }
 
 private struct DailyInsightsSection: View {
