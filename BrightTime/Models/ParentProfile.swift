@@ -3,11 +3,14 @@ import SwiftData
 
 @Model
 final class ParentProfile {
+    static let maximumNameLength = 16
+
     @Attribute(.unique) var id: UUID
     var name: String
     var notificationsEnabled: Bool
     var timeZoneIdentifier: String
     var defaultAvatarRawValue: String?
+    @Attribute(.externalStorage) var profilePhotoData: Data?
     var createdAt: Date
     var updatedAt: Date
     @Relationship(deleteRule: .cascade, inverse: \ChildProfile.parent)
@@ -19,6 +22,7 @@ final class ParentProfile {
         notificationsEnabled: Bool = true,
         timeZoneIdentifier: String = TimeZone.current.identifier,
         defaultAvatar: DefaultProfileAvatar? = nil,
+        profilePhotoData: Data? = nil,
         createdAt: Date = .now,
         updatedAt: Date = .now,
         children: [ChildProfile] = []
@@ -28,6 +32,7 @@ final class ParentProfile {
         self.notificationsEnabled = notificationsEnabled
         self.timeZoneIdentifier = timeZoneIdentifier
         self.defaultAvatarRawValue = defaultAvatar?.rawValue
+        self.profilePhotoData = profilePhotoData
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.children = children
@@ -38,7 +43,7 @@ final class ParentProfile {
     }
 
     static func isValidName(_ name: String) -> Bool {
-        (2...50).contains(normalizedName(name).count)
+        (2...maximumNameLength).contains(normalizedName(name).count)
     }
 
     var defaultAvatar: DefaultProfileAvatar? {

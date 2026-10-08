@@ -31,9 +31,17 @@ struct ParentAvatarView: View {
     var size: CGFloat = 44
 
     var body: some View {
-        Image(parent.resolvedDefaultAvatar.assetName)
-            .resizable()
-            .scaledToFill()
+        Group {
+            if let data = parent.profilePhotoData, let image = UIImage(data: data) {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                Image(parent.resolvedDefaultAvatar.assetName)
+                    .resizable()
+                    .scaledToFill()
+            }
+        }
             .frame(width: size, height: size)
             .clipShape(Circle())
             .overlay { Circle().stroke(.white.opacity(0.9), lineWidth: max(size * 0.025, 1)) }

@@ -84,9 +84,12 @@ struct ChildFormView: View {
                         .textContentType(.name)
                         .textInputAutocapitalization(.words)
                         .accessibilityIdentifier("child-name-field")
+                        .onChange(of: name) { _, newValue in
+                            name = String(newValue.prefix(ChildProfile.maximumNameLength))
+                        }
 
                     if !name.isEmpty, !ChildProfile.isValidName(name) {
-                        validationMessage("Enter a name between 2 and 50 characters.")
+                        validationMessage("Enter a name between 2 and 16 characters.")
                     } else if hasDuplicateName {
                         validationMessage("A child with this name already exists.")
                     }

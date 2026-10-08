@@ -3,6 +3,8 @@ import SwiftData
 
 @Model
 final class Device {
+    static let maximumNameLength = 16
+
     enum Kind: String, CaseIterable, Codable, Identifiable {
         case phone
         case tablet
@@ -86,6 +88,6 @@ final class Device {
     }
 
     static func isValidName(_ name: String) -> Bool {
-        (2...50).contains(normalizedName(name).count)
+        (2...maximumNameLength).contains(normalizedName(name).count)
     }
 }

@@ -70,6 +70,9 @@ struct ChildSettingsView: View {
                     .textContentType(.name)
                     .textInputAutocapitalization(.words)
                     .accessibilityIdentifier("settings-child-name")
+                    .onChange(of: name) { _, newValue in
+                        name = String(newValue.prefix(ChildProfile.maximumNameLength))
+                    }
 
                 Picker("Gender", selection: $selectedGender) {
                     ForEach(ChildGender.allCases) { gender in

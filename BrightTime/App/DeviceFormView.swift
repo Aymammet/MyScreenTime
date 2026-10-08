@@ -68,9 +68,12 @@ struct DeviceFormView: View {
                     TextField("Device name", text: $name)
                         .textInputAutocapitalization(.words)
                         .accessibilityIdentifier("device-name-field")
+                        .onChange(of: name) { _, newValue in
+                            name = String(newValue.prefix(Device.maximumNameLength))
+                        }
 
                     if !name.isEmpty, !Device.isValidName(name) {
-                        validationMessage("Enter a name between 2 and 50 characters.")
+                        validationMessage("Enter a name between 2 and 16 characters.")
                     } else if hasDuplicateName {
                         validationMessage("This owner already has a device with that name.")
                     }

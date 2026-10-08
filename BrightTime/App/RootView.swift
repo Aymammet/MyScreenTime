@@ -3,10 +3,23 @@ import SwiftUI
 
 struct RootView: View {
     @Query(sort: \ParentProfile.createdAt) private var parentProfiles: [ParentProfile]
+    @AppStorage("brighttime.parentIsSignedOut") private var isSignedOut = false
+
+    private var isUITesting: Bool {
+        CommandLine.arguments.contains("-ui-testing")
+    }
 
     var body: some View {
         if let parent = parentProfiles.first {
-            FamilyShellView(parent: parent)
+            if isSignedOut && !isUITesting {
+                SignedOutView(parent: parent) {
+                    isSignedOut = false
+                }
+            } else {
+                FamilyShellView(parent: parent) {
+                    isSignedOut = true
+                }
+            }
         } else {
             ParentSetupView()
         }
@@ -19,6 +32,7 @@ private struct FamilyShellView: View {
     @Query private var sessions: [UsageSession]
 
     let parent: ParentProfile
+    let onSignOut: () -> Void
 
     @State private var destination: AnalysisDestination = .home
     @Namespace private var tabIndicator
@@ -36,7 +50,7 @@ private struct FamilyShellView: View {
                 }
                 .transition(.opacity.combined(with: .scale(scale: 0.98)))
             } else {
-                ContentView(parent: parent)
+                ContentView(parent: parent, onSignOut: onSignOut)
                     .transition(.opacity.combined(with: .scale(scale: 0.98)))
             }
         }
@@ -97,5 +111,55 @@ private struct FamilyShellView: View {
         .padding(.horizontal, 12)
         .padding(.top, 6)
         .padding(.bottom, 4)
+    }
+}
+
+private struct SignedOutView: View {
+    let parent: ParentProfile
+    let signBackIn: () -> Void
+
+    var body: some View {
+        ZStack {
+            LinearGradient(
+                colors: [AppTheme.background, AppTheme.primary.opacity(0.12), AppTheme.lavender.opacity(0.16)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+
+            VStack(spacing: 18) {
+                Image(systemName: "sun.horizon.fill")
+                    .font(.system(size: 38, weight: .semibold))
+                    .foregroundStyle(AppTheme.primary)
+
+                Text("BrightTime")
+                    .font(.system(size: 34, weight: .bold, design: .rounded))
+                    .foregroundStyle(AppTheme.primaryDeep)
+
+                ParentAvatarView(parent: parent, size: 92)
+
+                VStack(spacing: 5) {
+                    Text("Signed out")
+                        .font(.title2.bold())
+                    Text("Your family data remains on this device.")
+                        .font(.subheadline)
+                        .foregroundStyle(AppTheme.textSecondary)
+                }
+
+                Button {
+                    signBackIn()
+                } label: {
+                    Label("Continue as \(parent.name)", systemImage: "person.crop.circle.badge.checkmark")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(AppTheme.primary)
+                .accessibilityIdentifier("parent-sign-back-in-button")
+            }
+            .padding(28)
+            .frame(maxWidth: 430)
+        }
     }
 }

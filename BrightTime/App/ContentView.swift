@@ -9,6 +9,7 @@ struct ContentView: View {
     @Query private var allDevices: [Device]
 
     let parent: ParentProfile
+    var onSignOut: () -> Void = {}
 
     @State private var isShowingSettings = false
     @State private var isAddingChild = false
@@ -100,7 +101,7 @@ struct ContentView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $isShowingSettings) {
-                ParentSettingsView(parent: parent)
+                ParentSettingsView(parent: parent, onSignOut: onSignOut)
             }
             .sheet(isPresented: $isAddingChild) {
                 ChildFormView(parent: parent)

@@ -49,6 +49,8 @@ enum ChildGender: String, CaseIterable, Codable, Identifiable {
 
 @Model
 final class ChildProfile {
+    static let maximumNameLength = 16
+
     @Attribute(.unique) var id: UUID
     var name: String
     var dailyLimitMinutes: Int
@@ -106,7 +108,7 @@ final class ChildProfile {
     }
 
     static func isValidName(_ name: String) -> Bool {
-        (2...50).contains(normalizedName(name).count)
+        (2...maximumNameLength).contains(normalizedName(name).count)
     }
 
     static func isValidDailyLimit(_ minutes: Int) -> Bool {

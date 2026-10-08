@@ -61,7 +61,8 @@ struct ParentProfilePersistenceTests {
     func validatesNames() {
         #expect(ParentProfile.isValidName(" A ") == false)
         #expect(ParentProfile.isValidName(" Alex ") == true)
-        #expect(ParentProfile.isValidName(String(repeating: "A", count: 51)) == false)
+        #expect(ParentProfile.isValidName(String(repeating: "A", count: 16)))
+        #expect(ParentProfile.isValidName(String(repeating: "A", count: 17)) == false)
     }
 
     @Test("Default avatar catalog contains five choices for each gender")
@@ -75,6 +76,25 @@ struct ParentProfilePersistenceTests {
         let parent = ParentProfile(name: "Alex", defaultAvatar: .boy3)
         #expect(child.resolvedDefaultAvatar == .girl4)
         #expect(parent.resolvedDefaultAvatar == .boy3)
+    }
+
+    @Test("A parent's profile photo is stored with their profile")
+    func storesParentProfilePhoto() throws {
+        let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try ModelContainer(
+            for: ParentProfile.self,
+            ChildProfile.self,
+            Device.self,
+            UsageSession.self,
+            configurations: configuration
+        )
+        let context = container.mainContext
+        let photo = Data([0x42, 0x52, 0x49, 0x47, 0x48, 0x54])
+        context.insert(ParentProfile(name: "Alex", profilePhotoData: photo))
+        try context.save()
+
+        let stored = try context.fetch(FetchDescriptor<ParentProfile>()).first
+        #expect(stored?.profilePhotoData == photo)
     }
 
     @Test("A child is linked to its parent and persists")
@@ -106,6 +126,8 @@ struct ParentProfilePersistenceTests {
     func validatesChildFields() {
         #expect(ChildProfile.isValidName(" S ") == false)
         #expect(ChildProfile.isValidName(" Sam ") == true)
+        #expect(ChildProfile.isValidName(String(repeating: "C", count: 16)))
+        #expect(ChildProfile.isValidName(String(repeating: "C", count: 17)) == false)
         #expect(ChildProfile.isValidDailyLimit(15))
         #expect(ChildProfile.isValidDailyLimit(90))
         #expect(ChildProfile.isValidDailyLimit(10) == false)
@@ -144,7 +166,8 @@ struct ParentProfilePersistenceTests {
     func validatesDeviceNames() {
         #expect(Device.isValidName(" P ") == false)
         #expect(Device.isValidName(" Phone "))
-        #expect(Device.isValidName(String(repeating: "D", count: 51)) == false)
+        #expect(Device.isValidName(String(repeating: "D", count: 16)))
+        #expect(Device.isValidName(String(repeating: "D", count: 17)) == false)
     }
 
     @Test("A shared device is available to every child and persists without a child owner")
