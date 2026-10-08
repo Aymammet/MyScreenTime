@@ -33,8 +33,12 @@
 		A10000000000000000000018 /* ChildSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001B /* ChildSettingsView.swift */; };
 		A10000000000000000000019 /* AnalysisCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001C /* AnalysisCalculator.swift */; };
 		A1000000000000000000001A /* AnalysisView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001D /* AnalysisView.swift */; };
+		A10000000000000000000023 /* ChildrenTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000026 /* ChildrenTab.swift */; };
+		A10000000000000000000022 /* DevicesTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000025 /* DevicesTab.swift */; };
+		A10000000000000000000021 /* PeriodAnalysisTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000024 /* PeriodAnalysisTab.swift */; };
 		A1000000000000000000001B /* DailyInsightsCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001E /* DailyInsightsCatalog.swift */; };
 		A1000000000000000000001C /* RingProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001F /* RingProgressView.swift */; };
+		A10000000000000000000020 /* BrightComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000023 /* BrightComponents.swift */; };
 		A1000000000000000000001D /* DeviceUsageChip.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000020 /* DeviceUsageChip.swift */; };
 		A1000000000000000000001E /* ChildColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000021 /* ChildColor.swift */; };
 		A1000000000000000000001F /* ColorSwatchPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000022 /* ColorSwatchPicker.swift */; };
@@ -87,8 +91,12 @@
 		B1000000000000000000001B /* ChildSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChildSettingsView.swift; sourceTree = "<group>"; };
 		B1000000000000000000001C /* AnalysisCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalysisCalculator.swift; sourceTree = "<group>"; };
 		B1000000000000000000001D /* AnalysisView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalysisView.swift; sourceTree = "<group>"; };
+		B10000000000000000000026 /* ChildrenTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChildrenTab.swift; sourceTree = "<group>"; };
+		B10000000000000000000025 /* DevicesTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DevicesTab.swift; sourceTree = "<group>"; };
+		B10000000000000000000024 /* PeriodAnalysisTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeriodAnalysisTab.swift; sourceTree = "<group>"; };
 		B1000000000000000000001E /* DailyInsightsCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyInsightsCatalog.swift; sourceTree = "<group>"; };
 		B1000000000000000000001F /* RingProgressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RingProgressView.swift; sourceTree = "<group>"; };
+		B10000000000000000000023 /* BrightComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrightComponents.swift; sourceTree = "<group>"; };
 		B10000000000000000000020 /* DeviceUsageChip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceUsageChip.swift; sourceTree = "<group>"; };
 		B10000000000000000000021 /* ChildColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChildColor.swift; sourceTree = "<group>"; };
 		B10000000000000000000022 /* ColorSwatchPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorSwatchPicker.swift; sourceTree = "<group>"; };
@@ -157,6 +165,9 @@
 				B1000000000000000000001A /* ChildAvatarView.swift */,
 				B1000000000000000000001B /* ChildSettingsView.swift */,
 				B1000000000000000000001D /* AnalysisView.swift */,
+				B10000000000000000000026 /* ChildrenTab.swift */,
+				B10000000000000000000025 /* DevicesTab.swift */,
+				B10000000000000000000024 /* PeriodAnalysisTab.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -166,6 +177,7 @@
 			children = (
 				B10000000000000000000003 /* AppTheme.swift */,
 				B1000000000000000000001F /* RingProgressView.swift */,
+				B10000000000000000000023 /* BrightComponents.swift */,
 				B10000000000000000000020 /* DeviceUsageChip.swift */,
 				B10000000000000000000021 /* ChildColor.swift */,
 				B10000000000000000000022 /* ColorSwatchPicker.swift */,
@@ -376,6 +388,9 @@
 				A10000000000000000000018 /* ChildSettingsView.swift in Sources */,
 				A10000000000000000000019 /* AnalysisCalculator.swift in Sources */,
 				A1000000000000000000001A /* AnalysisView.swift in Sources */,
+				A10000000000000000000023 /* ChildrenTab.swift in Sources */,
+				A10000000000000000000022 /* DevicesTab.swift in Sources */,
+				A10000000000000000000021 /* PeriodAnalysisTab.swift in Sources */,
 				A1000000000000000000001B /* DailyInsightsCatalog.swift in Sources */,
 				A10000000000000000000003 /* AppTheme.swift in Sources */,
 				A1000000000000000000000E /* ParentProfile.swift in Sources */,
@@ -384,6 +399,7 @@
 				A10000000000000000000006 /* UsageSession.swift in Sources */,
 				A10000000000000000000007 /* DurationCalculator.swift in Sources */,
 				A1000000000000000000001C /* RingProgressView.swift in Sources */,
+				A10000000000000000000020 /* BrightComponents.swift in Sources */,
 				A1000000000000000000001D /* DeviceUsageChip.swift in Sources */,
 				A1000000000000000000001E /* ChildColor.swift in Sources */,
 				A1000000000000000000001F /* ColorSwatchPicker.swift in Sources */,

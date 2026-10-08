@@ -1,40 +1,76 @@
 import SwiftUI
+import UIKit
 
 enum AppTheme {
-    // BrightTime's core identity: a calm periwinkle that feels optimistic and
-    // analytical without the heavy dark-green appearance of the first design.
-    static let primary = Color(red: 0.302, green: 0.431, blue: 0.965)
-    static let primaryDeep = Color(red: 0.157, green: 0.157, blue: 0.427)
-    static let primaryTint = Color(red: 0.927, green: 0.933, blue: 1.000)
-    static let lavender = Color(red: 0.545, green: 0.494, blue: 0.961)
-    static let rose = Color(red: 0.925, green: 0.365, blue: 0.624)
+    // MARK: - Brand
+    // Taken straight from the sun-clock app icon: teal for "on track", a deep teal
+    // for text, warm cream surfaces. Brighter than the first dark-green design so
+    // the app reads calm and optimistic rather than heavy.
 
-    // Status colors. These intentionally never overlap the device palette below,
-    // so a color can only ever mean "limit status" or "which device" — never both.
-    static let success = Color(red: 0.302, green: 0.431, blue: 0.965)
-    static let successTint = Color(red: 0.927, green: 0.933, blue: 1.000)
-    static let warning = Color(red: 0.871, green: 0.604, blue: 0.235)
-    static let warningTint = Color(red: 0.984, green: 0.941, blue: 0.875)
-    static let danger = Color(red: 0.882, green: 0.357, blue: 0.322)
-    static let dangerTint = Color(red: 0.984, green: 0.906, blue: 0.898)
+    static let primary = adaptive(light: 0x2F8F8A, dark: 0x3AA39D)
+    static let primaryDeep = adaptive(light: 0x173F3C, dark: 0xF3EEE4)
+    static let primaryTint = adaptive(light: 0xE2F1EE, dark: 0x1D3F3C)
+    static let primarySoft = adaptive(light: 0xA9D6D0, dark: 0x2C6662)
+    static let cream = Color(hex: 0xFBF3E4)
 
-    // Neutral surfaces used for the card-based layout.
-    static let background = Color(red: 0.965, green: 0.969, blue: 0.992)
-    static let surface = Color.white
-    static let cardBorder = Color(red: 0.887, green: 0.891, blue: 0.961)
-    static let textSecondary = Color(red: 0.376, green: 0.388, blue: 0.525)
-    static let textTertiary = Color(red: 0.573, green: 0.584, blue: 0.690)
+    /// Hero-card gradient (Home "Family today" card, selected tab pill).
+    static var heroGradient: LinearGradient {
+        LinearGradient(
+            colors: [Color(hex: 0x3A9D97), Color(hex: 0x2F8F8A), Color(hex: 0x1F6A66)],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
 
-    /// A small fixed palette used to color-code devices consistently across every
-    /// screen (dashboard chips, child-detail rows, analysis charts). Kept separate
-    /// from the status colors above.
+    // Older names kept so screens that still reference them pick up the new palette.
+    static let lavender = primarySoft
+    static let rose = Color(hex: 0xC2568F)
+
+    // MARK: - Status
+    // Teal = on track, amber = close to the limit, coral = over. These never appear
+    // in the device palette below, so a color only ever means one thing.
+
+    static let success = primary
+    static let successTint = primaryTint
+    static let warning = adaptive(light: 0xE09A2D, dark: 0xF0AE45)
+    static let warningTint = adaptive(light: 0xFBEFD9, dark: 0x3A2E17)
+    /// Amber is too light for small text on cream; use this for amber labels.
+    static let warningText = adaptive(light: 0xA86A0E, dark: 0xF0AE45)
+    static let danger = adaptive(light: 0xDD5E4B, dark: 0xEE7562)
+    static let dangerTint = adaptive(light: 0xFBE4DF, dark: 0x3D221E)
+    static let dangerText = adaptive(light: 0xB4402F, dark: 0xEE7562)
+
+    // MARK: - Surfaces & text
+
+    static let background = adaptive(light: 0xFAF5EC, dark: 0x0F2523)
+    static let surface = adaptive(light: 0xFFFFFF, dark: 0x17312F)
+    static let surfaceMuted = adaptive(light: 0xF1ECE2, dark: 0x1E3A37)
+    static let cardBorder = adaptive(light: 0xEEE7DA, dark: 0x23413E)
+    static let textSecondary = adaptive(light: 0x677976, dark: 0xA3B5B1)
+    static let textTertiary = adaptive(light: 0x9AA8A5, dark: 0x70827E)
+
+    // MARK: - Shape & motion
+
+    static let cardRadius: CGFloat = 20
+
+    /// The one spring used for tab switches, period steppers and expanding cards.
+    static var spring: Animation { .spring(response: 0.35, dampingFraction: 0.85) }
+
+    /// Springs everywhere, or a short fade when the person has Reduce Motion on.
+    static func motion(reduceMotion: Bool) -> Animation {
+        reduceMotion ? .easeInOut(duration: 0.2) : spring
+    }
+
+    // MARK: - Devices
+
+    /// A fixed palette used to color-code devices across every screen. Deliberately
+    /// excludes teal, amber and coral (the status colors).
     private static let devicePalette: [Color] = [
-        Color(red: 0.298, green: 0.494, blue: 0.953), // blue
-        Color(red: 0.545, green: 0.361, blue: 0.965), // purple
-        Color(red: 0.941, green: 0.588, blue: 0.243), // orange
-        Color(red: 0.925, green: 0.416, blue: 0.620), // pink
-        Color(red: 0.376, green: 0.655, blue: 0.949), // light blue
-        primary
+        Color(hex: 0x3B7DD8), // ocean
+        Color(hex: 0x7B61D1), // violet
+        Color(hex: 0xC2568F), // berry
+        Color(hex: 0x5E7182), // slate
+        Color(hex: 0x2F5D9E)  // denim
     ]
 
     static func statusColor(for status: DailyLimitStatus) -> Color {
@@ -53,9 +89,61 @@ enum AppTheme {
         }
     }
 
-    /// A stable color for a given device, so the same device always renders in the
-    /// same color everywhere it appears in the app.
+    /// Readable text color for a status label sitting on its tint.
+    static func statusTextColor(for status: DailyLimitStatus) -> Color {
+        switch status {
+        case .normal: primary
+        case .nearLimit, .reached: warningText
+        case .exceeded: dangerText
+        }
+    }
+
+    /// A stable color for a given device. Uses the UUID's bytes rather than
+    /// `hashValue`, which Swift re-seeds on every launch.
     static func color(forDeviceID id: UUID) -> Color {
-        devicePalette[abs(id.hashValue) % devicePalette.count]
+        devicePalette[stableIndex(for: id, count: devicePalette.count)]
+    }
+
+    static func stableIndex(for id: UUID, count: Int) -> Int {
+        id.stableIndex(count: count)
+    }
+
+    private static func adaptive(light: UInt32, dark: UInt32) -> Color {
+        Color(uiColor: UIColor { traits in
+            UIColor(hex: traits.userInterfaceStyle == .dark ? dark : light)
+        })
+    }
+}
+
+extension Color {
+    init(hex: UInt32) {
+        self.init(
+            red: Double((hex >> 16) & 0xFF) / 255,
+            green: Double((hex >> 8) & 0xFF) / 255,
+            blue: Double(hex & 0xFF) / 255
+        )
+    }
+}
+
+extension UIColor {
+    convenience init(hex: UInt32) {
+        self.init(
+            red: CGFloat((hex >> 16) & 0xFF) / 255,
+            green: CGFloat((hex >> 8) & 0xFF) / 255,
+            blue: CGFloat(hex & 0xFF) / 255,
+            alpha: 1
+        )
+    }
+}
+
+extension UUID {
+    /// An index in `0..<count` that stays the same across launches (unlike
+    /// `hashValue`, which Swift re-seeds every run).
+    func stableIndex(count: Int) -> Int {
+        guard count > 0 else { return 0 }
+        let sum = withUnsafeBytes(of: uuid) { bytes in
+            bytes.reduce(0) { $0 &+ Int($1) }
+        }
+        return sum % count
     }
 }

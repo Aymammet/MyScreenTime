@@ -187,7 +187,9 @@ final class ChildProfile {
     }
 
     private static func defaultColor(for id: UUID) -> ChildColor {
+        // UUID bytes, not `hashValue`: Swift re-seeds hashes on every launch, which
+        // made a child's default color change each time the app opened.
         let all = ChildColor.allCases
-        return all[abs(id.hashValue) % all.count]
+        return all[id.stableIndex(count: all.count)]
     }
 }

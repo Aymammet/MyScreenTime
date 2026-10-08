@@ -18,8 +18,10 @@ final class BrightTimeUITests: XCTestCase {
         nameField.typeText("Alex")
         app.buttons["save-parent-profile"].tap()
 
-        XCTAssertTrue(app.navigationBars["BrightTime"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Welcome, Alex"].exists)
+        // Home has no navigation bar; the greeting ("Good morning, Alex", etc.) and tab bar confirm it.
+        let greeting = app.staticTexts.containing(NSPredicate(format: "label ENDSWITH %@", ", Alex")).firstMatch
+        XCTAssertTrue(greeting.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["analysis-home-tab"].exists)
 
         for tab in ["weekly", "monthly", "devices", "children"] {
             app.buttons["analysis-\(tab)-tab"].tap()
@@ -28,7 +30,7 @@ final class BrightTimeUITests: XCTestCase {
             XCTAssertTrue(app.descendants(matching: .any)["daily-insights-empty"].waitForExistence(timeout: 5))
         }
         app.buttons["analysis-home-tab"].tap()
-        XCTAssertTrue(app.navigationBars["BrightTime"].waitForExistence(timeout: 5))
+        XCTAssertTrue(greeting.waitForExistence(timeout: 5))
 
         app.buttons["add-child-button"].tap()
         XCTAssertTrue(app.navigationBars["Add Child"].waitForExistence(timeout: 5))
@@ -39,9 +41,8 @@ final class BrightTimeUITests: XCTestCase {
         app.buttons["save-child-profile"].tap()
 
         XCTAssertTrue(app.staticTexts["Sam"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["0 min used"].exists)
-        XCTAssertTrue(app.staticTexts["2 hr remaining"].exists)
-        XCTAssertTrue(app.staticTexts["2 hr daily limit"].exists)
+        XCTAssertTrue(app.staticTexts["2h left"].exists)
+        XCTAssertTrue(app.staticTexts["0m of 2h today"].exists)
 
         app.staticTexts["Sam"].tap()
         XCTAssertTrue(app.navigationBars["Sam"].waitForExistence(timeout: 5))

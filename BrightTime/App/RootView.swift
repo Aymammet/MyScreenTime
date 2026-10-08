@@ -36,80 +36,87 @@ private struct FamilyShellView: View {
 
     @State private var destination: AnalysisDestination = .home
     @Namespace private var tabIndicator
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        Group {
-            if destination != .home {
-                NavigationStack {
-                    AnalysisView(
-                        children: children.filter { $0.parent?.id == parent.id },
-                        devices: devices,
-                        sessions: sessions,
-                        destination: destination
-                    )
+        ZStack {
+            AppTheme.background.ignoresSafeArea()
+
+            Group {
+                if destination == .home {
+                    ContentView(parent: parent, onSignOut: onSignOut)
+                } else {
+                    NavigationStack {
+                        AnalysisView(
+                            children: children.filter { $0.parent?.id == parent.id },
+                            devices: devices,
+                            sessions: sessions,
+                            destination: destination
+                        )
+                    }
                 }
-                .transition(.opacity.combined(with: .scale(scale: 0.98)))
-            } else {
-                ContentView(parent: parent, onSignOut: onSignOut)
-                    .transition(.opacity.combined(with: .scale(scale: 0.98)))
             }
+            .id(destination)
+            .transition(.opacity.combined(with: .scale(scale: 0.985)))
         }
-        .animation(.easeInOut(duration: 0.22), value: destination == .home)
+        .animation(AppTheme.motion(reduceMotion: reduceMotion), value: destination)
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            analysisNavigationBar
+            tabBar
         }
         .tint(AppTheme.primary)
+        .sensoryFeedback(.selection, trigger: destination)
     }
 
-    private var analysisNavigationBar: some View {
-        HStack(spacing: 0) {
+    /// Floating capsule tab bar: the selected tab expands into a teal pill with its
+    /// label and slides between positions; the others stay icon-only.
+    private var tabBar: some View {
+        HStack(spacing: 4) {
             ForEach(AnalysisDestination.allCases) { item in
+                let isSelected = destination == item
+
                 Button {
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
+                    withAnimation(AppTheme.motion(reduceMotion: reduceMotion)) {
                         destination = item
                     }
                 } label: {
-                    VStack(spacing: 6) {
+                    HStack(spacing: 6) {
                         Image(systemName: item.systemImage)
-                            .font(.system(size: 20, weight: .semibold))
-                            .foregroundStyle(destination == item ? .white : AppTheme.textTertiary)
-                            .frame(height: 25)
+                            .font(.system(size: 18, weight: .semibold))
 
-                        Text(item.rawValue)
-                            .font(.caption2.weight(destination == item ? .bold : .medium))
-                            .foregroundStyle(destination == item ? .white : AppTheme.textSecondary)
-                    }
-                    .frame(maxWidth: .infinity, minHeight: 58)
-                    .background {
-                        if destination == item {
-                            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                                .fill(
-                                    LinearGradient(
-                                        colors: [AppTheme.primary, AppTheme.lavender],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                                .matchedGeometryEffect(id: "tab-indicator", in: tabIndicator)
-                                .shadow(color: AppTheme.primary.opacity(0.24), radius: 8, y: 4)
+                        if isSelected {
+                            Text(item.rawValue)
+                                .font(.footnote.weight(.bold))
+                                .lineLimit(1)
+                                .fixedSize()
+                                .transition(.opacity)
                         }
                     }
-                    .contentShape(Rectangle())
+                    .foregroundStyle(isSelected ? Color.white : AppTheme.textTertiary)
+                    .padding(.horizontal, isSelected ? 16 : 0)
+                    .frame(maxWidth: isSelected ? nil : .infinity, minHeight: 48)
+                    .background {
+                        if isSelected {
+                            Capsule()
+                                .fill(AppTheme.heroGradient)
+                                .matchedGeometryEffect(id: "tab-indicator", in: tabIndicator)
+                                .shadow(color: AppTheme.primary.opacity(0.3), radius: 8, y: 4)
+                        }
+                    }
+                    .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(item.rawValue)
                 .accessibilityIdentifier("analysis-\(item.rawValue.lowercased())-tab")
-                .accessibilityAddTraits(destination == item ? .isSelected : [])
+                .accessibilityAddTraits(isSelected ? .isSelected : [])
             }
         }
-        .padding(8)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 30, style: .continuous))
+        .padding(6)
+        .background(.regularMaterial, in: Capsule())
         .overlay {
-            RoundedRectangle(cornerRadius: 32, style: .continuous)
-                .stroke(.white.opacity(0.75), lineWidth: 1)
+            Capsule().stroke(AppTheme.cardBorder, lineWidth: 1)
         }
-        .shadow(color: AppTheme.primaryDeep.opacity(0.12), radius: 18, y: 8)
-        .padding(.horizontal, 12)
-        .padding(.top, 6)
+        .shadow(color: .black.opacity(0.12), radius: 16, y: 8)
+        .padding(.horizontal, 16)
         .padding(.bottom, 4)
     }
 }
@@ -121,16 +128,14 @@ private struct SignedOutView: View {
     var body: some View {
         ZStack {
             LinearGradient(
-                colors: [AppTheme.background, AppTheme.primary.opacity(0.12), AppTheme.lavender.opacity(0.16)],
+                colors: [AppTheme.background, AppTheme.primaryTint],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
             .ignoresSafeArea()
 
             VStack(spacing: 18) {
-                Image(systemName: "sun.horizon.fill")
-                    .font(.system(size: 38, weight: .semibold))
-                    .foregroundStyle(AppTheme.primary)
+                SunRingView(progress: 0.66, color: AppTheme.primary, size: 64, lineWidth: 6)
 
                 Text("BrightTime")
                     .font(.system(size: 34, weight: .bold, design: .rounded))

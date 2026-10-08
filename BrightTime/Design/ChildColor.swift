@@ -18,7 +18,7 @@ enum ChildColor: String, CaseIterable, Identifiable, Codable {
 
     var color: Color {
         switch self {
-        case .teal: Color(red: 0.184, green: 0.435, blue: 0.420)
+        case .teal: Color(red: 0.184, green: 0.561, blue: 0.541)
         case .blue: Color(red: 0.243, green: 0.463, blue: 0.925)
         case .indigo: Color(red: 0.365, green: 0.361, blue: 0.902)
         case .purple: Color(red: 0.545, green: 0.361, blue: 0.965)
