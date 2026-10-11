@@ -132,7 +132,9 @@ struct PeriodAnalysisTab: View {
 
     private func summaryTiles(analysis: PeriodAnalysis, days: [DayUsage]) -> some View {
         let elapsed = days.filter { $0.minutes != nil }
-        let onTrack = elapsed.filter { $0.status == .normal }.count
+        // Only days that had a limit can be "on track"; with no limits set it's "—".
+        let limitedDays = elapsed.filter { $0.limit > 0 }
+        let onTrack = limitedDays.filter { $0.status == .normal }.count
         let averageLimit = elapsed.isEmpty ? 0 : elapsed.reduce(0) { $0 + $1.limit } / elapsed.count
 
         return HStack(spacing: 8) {
@@ -149,9 +151,9 @@ struct PeriodAnalysisTab: View {
             )
             StatTile(
                 label: "On track",
-                value: "\(onTrack) / \(elapsed.count)",
-                detail: "days",
-                detailColor: AppTheme.primary
+                value: limitedDays.isEmpty ? "—" : "\(onTrack) / \(limitedDays.count)",
+                detail: limitedDays.isEmpty ? "no limits yet" : "days",
+                detailColor: limitedDays.isEmpty ? AppTheme.textSecondary : AppTheme.primary
             )
         }
     }
@@ -164,7 +166,7 @@ struct PeriodAnalysisTab: View {
         let hasUsage = allDays.contains { ($0.minutes ?? 0) > 0 }
 
         return VStack(alignment: .leading, spacing: 12) {
-            CardTitle(title: "Daily usage", detail: selectedDetail(selected) ?? "Tap a bar")
+            CardTitle(title: "Daily usage", detail: selectedDetail(selected) ?? (hasUsage ? "Tap a bar" : nil))
 
             if hasUsage {
                 Chart {
@@ -323,12 +325,14 @@ struct PeriodAnalysisTab: View {
             CardTitle(title: "Every day", detail: selectedDetail(selected) ?? "Darker = more time")
 
             LazyVGrid(columns: columns, spacing: 5) {
-                ForEach(Array(weekdaySymbols.enumerated()), id: \.offset) { item in
-                    Text(item.element)
+                // Headers and blanks get string IDs ("weekday-0", "blank-0") so they can't
+                // collide with each other inside the one grid (Int IDs did).
+                ForEach(weekdayHeaders) { header in
+                    Text(header.symbol)
                         .font(.caption2.weight(.bold))
                         .foregroundStyle(AppTheme.textTertiary)
                 }
-                ForEach(0..<leadingBlanks, id: \.self) { _ in
+                ForEach((0..<leadingBlanks).map { "blank-\($0)" }, id: \.self) { _ in
                     Color.clear.frame(height: 1)
                 }
                 ForEach(allDays) { day in
@@ -356,10 +360,11 @@ struct PeriodAnalysisTab: View {
         .brightCard()
     }
 
-    private var weekdaySymbols: [String] {
+    private var weekdayHeaders: [WeekdayHeader] {
         let symbols = calendar.veryShortStandaloneWeekdaySymbols
         let first = calendar.firstWeekday - 1
-        return Array(symbols[first...] + symbols[..<first])
+        let ordered = Array(symbols[first...] + symbols[..<first])
+        return ordered.enumerated().map { WeekdayHeader(index: $0.offset, symbol: $0.element) }
     }
 
     private func heatCell(_ day: DayUsage, maxMinutes: Int, isSelected: Bool) -> some View {
@@ -544,6 +549,12 @@ struct PeriodAnalysisTab: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.vertical, 6)
     }
+}
+
+private struct WeekdayHeader: Identifiable {
+    let index: Int
+    let symbol: String
+    var id: String { "weekday-\(index)" }
 }
 
 private struct ChildShare: Identifiable {
