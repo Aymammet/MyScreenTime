@@ -11,6 +11,8 @@ struct ActiveScreenTimer: Codable, Identifiable, Equatable {
     let deviceName: String
     let startedAt: Date
     let endsAt: Date
+    /// The child's color for the Live Activity (missing on timers saved by older builds).
+    var childColorHex: UInt32?
 
     var durationMinutes: Int {
         max(Int(endsAt.timeIntervalSince(startedAt) / 60), 1)
@@ -27,13 +29,15 @@ final class ScreenTimerManager: ObservableObject {
         guard let data = UserDefaults.standard.data(forKey: storageKey),
               let saved = try? JSONDecoder().decode([ActiveScreenTimer].self, from: data) else { return }
         timers = saved
+        LiveActivityController.sync(with: timers)
     }
 
     func timer(for childID: UUID) -> ActiveScreenTimer? {
         timers.first { $0.childID == childID }
     }
 
-    func start(child: ChildProfile, device: Device, minutes: Int, now: Date = .now) {
+    @discardableResult
+    func start(child: ChildProfile, device: Device, minutes: Int, now: Date = .now) -> ActiveScreenTimer {
         let timer = ActiveScreenTimer(
             id: UUID(),
             childID: child.id,
@@ -41,12 +45,16 @@ final class ScreenTimerManager: ObservableObject {
             deviceID: device.id,
             deviceName: device.name,
             startedAt: now,
-            endsAt: now.addingTimeInterval(TimeInterval(minutes * 60))
+            endsAt: now.addingTimeInterval(TimeInterval(minutes * 60)),
+            childColorHex: child.color.hex
         )
+        let replaced = timers.filter { $0.childID == child.id }.map(\.id.uuidString)
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: replaced)
         timers.removeAll { $0.childID == child.id }
         timers.append(timer)
         persist()
         Task { await scheduleNotification(for: timer) }
+        return timer
     }
 
     func completeDueTimers(
@@ -61,13 +69,7 @@ final class ScreenTimerManager: ObservableObject {
         for timer in completed {
             guard let child = children.first(where: { $0.id == timer.childID }),
                   let device = devices.first(where: { $0.id == timer.deviceID }) else { continue }
-            context.insert(UsageSession(
-                startedAt: timer.startedAt,
-                endedAt: timer.endsAt,
-                note: "Screen timer",
-                child: child,
-                device: device
-            ))
+            insertUsage(from: timer.startedAt, to: timer.endsAt, note: "Screen timer", child: child, device: device, context: context)
         }
         timers.removeAll { $0.endsAt <= now }
         persist()
@@ -88,15 +90,81 @@ final class ScreenTimerManager: ObservableObject {
         }
 
         let stoppedAt = min(max(now, timer.startedAt.addingTimeInterval(1)), timer.endsAt)
-        context.insert(UsageSession(
-            startedAt: timer.startedAt,
-            endedAt: stoppedAt,
-            note: "Screen timer stopped",
-            child: child,
-            device: device
-        ))
+        insertUsage(from: timer.startedAt, to: stoppedAt, note: "Screen timer stopped", child: child, device: device, context: context)
         remove(timer)
         try? context.save()
+    }
+
+    /// Stops and records any running timer for a child (e.g. before archiving them).
+    func stopTimer(
+        forChildID childID: UUID,
+        children: [ChildProfile],
+        devices: [Device],
+        context: ModelContext
+    ) {
+        guard let timer = timer(for: childID) else { return }
+        stop(timer, children: children, devices: devices, context: context)
+    }
+
+    /// Drops every timer and its notification (used by Reset BrightTime).
+    func clearAll() {
+        let ids = timers.map(\.id.uuidString)
+        timers.removeAll()
+        persist()
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ids)
+    }
+
+    /// Records timer time, skipping any minutes already covered by a saved session
+    /// for the same child, so a timer and a manual entry never count twice.
+    private func insertUsage(
+        from start: Date,
+        to end: Date,
+        note: String,
+        child: ChildProfile,
+        device: Device,
+        context: ModelContext
+    ) {
+        guard end > start else { return }
+        let descriptor = FetchDescriptor<UsageSession>(
+            predicate: #Predicate { $0.startedAt < end && $0.endedAt > start }
+        )
+        let busy = ((try? context.fetch(descriptor)) ?? [])
+            .filter { $0.child?.id == child.id }
+            .map { (start: $0.startedAt, end: $0.endedAt) }
+
+        for segment in Self.uncoveredSegments(from: start, to: end, excluding: busy)
+        where segment.end.timeIntervalSince(segment.start) >= 60 {
+            context.insert(UsageSession(
+                startedAt: segment.start,
+                endedAt: segment.end,
+                note: note,
+                child: child,
+                device: device
+            ))
+        }
+    }
+
+    /// The parts of `start...end` not covered by any `busy` interval.
+    nonisolated static func uncoveredSegments(
+        from start: Date,
+        to end: Date,
+        excluding busy: [(start: Date, end: Date)]
+    ) -> [(start: Date, end: Date)] {
+        var segments: [(start: Date, end: Date)] = []
+        var cursor = start
+        for interval in busy.sorted(by: { $0.start < $1.start }) {
+            if interval.end <= cursor { continue }
+            if interval.start >= end { break }
+            if interval.start > cursor {
+                segments.append((start: cursor, end: min(interval.start, end)))
+            }
+            cursor = max(cursor, interval.end)
+            if cursor >= end { break }
+        }
+        if cursor < end {
+            segments.append((start: cursor, end: end))
+        }
+        return segments
     }
 
     private func remove(_ timer: ActiveScreenTimer) {
@@ -111,6 +179,7 @@ final class ScreenTimerManager: ObservableObject {
         if let data = try? JSONEncoder().encode(timers) {
             UserDefaults.standard.set(data, forKey: storageKey)
         }
+        LiveActivityController.sync(with: timers)
     }
 
     private func scheduleNotification(for timer: ActiveScreenTimer) async {

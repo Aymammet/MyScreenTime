@@ -68,6 +68,8 @@ final class ChildProfile {
     var devices: [Device]
     @Relationship(deleteRule: .cascade, inverse: \UsageSession.child)
     var usageSessions: [UsageSession]
+    @Relationship(deleteRule: .cascade, inverse: \TimeCredit.child)
+    var timeCredits: [TimeCredit] = []
 
     init(
         id: UUID = UUID(),
@@ -119,7 +121,13 @@ final class ChildProfile {
         Self.formattedLimit(dailyLimitMinutes)
     }
 
-    func limitMinutes(on date: Date, calendar: Calendar = .current) -> Int {
+    /// Today's limit including minutes added from the time bank.
+    func limitMinutes(on date: Date, calendar: Calendar = AppCalendar.day) -> Int {
+        baseLimitMinutes(on: date, calendar: calendar) + bonusMinutes(on: date, calendar: calendar)
+    }
+
+    /// The limit set in the child's settings, before any time bank bonus.
+    func baseLimitMinutes(on date: Date, calendar: Calendar = AppCalendar.day) -> Int {
         guard let weekdayLimitMinutes, let weekendLimitMinutes else {
             return dailyLimitMinutes
         }
@@ -127,11 +135,11 @@ final class ChildProfile {
         return calendar.isDateInWeekend(date) ? weekendLimitMinutes : weekdayLimitMinutes
     }
 
-    func formattedLimit(on date: Date, calendar: Calendar = .current) -> String {
+    func formattedLimit(on date: Date, calendar: Calendar = AppCalendar.day) -> String {
         Self.formattedLimit(limitMinutes(on: date, calendar: calendar))
     }
 
-    private static func formattedLimit(_ totalMinutes: Int) -> String {
+    static func formattedLimit(_ totalMinutes: Int) -> String {
         let hours = totalMinutes / 60
         let minutes = totalMinutes % 60
 

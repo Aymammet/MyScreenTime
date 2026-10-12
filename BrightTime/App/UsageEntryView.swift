@@ -4,6 +4,7 @@ import SwiftUI
 struct UsageEntryView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var timerManager: ScreenTimerManager
     @Query private var allUsageSessions: [UsageSession]
 
     let child: ChildProfile
@@ -21,10 +22,13 @@ struct UsageEntryView: View {
         self.child = child
         self.devices = devices
         self.session = session
+        // New entries default to the last 30 minutes (never the future).
+        let defaultEnd = Date.now
+        let defaultStart = defaultEnd.addingTimeInterval(-30 * 60)
         _selectedDeviceID = State(initialValue: session?.device?.id ?? devices.first?.id ?? UUID())
-        _usageDate = State(initialValue: session?.startedAt ?? .now)
-        _startTime = State(initialValue: session?.startedAt ?? .now)
-        _endTime = State(initialValue: session?.endedAt ?? Date().addingTimeInterval(30 * 60))
+        _usageDate = State(initialValue: session?.startedAt ?? defaultStart)
+        _startTime = State(initialValue: session?.startedAt ?? defaultStart)
+        _endTime = State(initialValue: session?.endedAt ?? defaultEnd)
         _note = State(initialValue: session?.note ?? "")
     }
 
@@ -36,17 +40,39 @@ struct UsageEntryView: View {
         combine(date: usageDate, time: startTime)
     }
 
+    /// An end time earlier than the start means the session ran past midnight.
     private var combinedEnd: Date? {
-        combine(date: usageDate, time: endTime)
+        guard let combinedStart, let end = combine(date: usageDate, time: endTime) else { return nil }
+        if end <= combinedStart {
+            return Calendar.current.date(byAdding: .day, value: 1, to: end)
+        }
+        return end
+    }
+
+    private var endsNextDay: Bool {
+        guard let combinedStart, let combinedEnd else { return false }
+        return !Calendar.current.isDate(combinedStart, inSameDayAs: combinedEnd)
     }
 
     private var durationMinutes: Int? {
-        guard let combinedStart, let combinedEnd else { return nil }
+        guard let combinedStart, let combinedEnd,
+              combine(date: usageDate, time: endTime) != combinedStart else { return nil }
         return try? DurationCalculator.minutes(from: combinedStart, to: combinedEnd)
     }
 
+    /// Usage can only be logged for time that has already happened.
     private var isFutureDate: Bool {
-        Calendar.current.startOfDay(for: usageDate) > Calendar.current.startOfDay(for: .now)
+        guard let combinedEnd else { return false }
+        return combinedEnd > Date.now.addingTimeInterval(60)
+    }
+
+    /// A running timer for this child already covers this time.
+    private var overlapsRunningTimer: Bool {
+        guard session == nil,
+              let combinedStart, let combinedEnd,
+              let timer = timerManager.timer(for: child.id) else { return false }
+        let timerEnd = min(Date.now, timer.endsAt)
+        return combinedStart < timerEnd && combinedEnd > timer.startedAt
     }
 
     private var hasOverlap: Bool {
@@ -61,7 +87,7 @@ struct UsageEntryView: View {
     }
 
     private var isValid: Bool {
-        selectedDevice != nil && durationMinutes != nil && !isFutureDate && !hasOverlap
+        selectedDevice != nil && durationMinutes != nil && !isFutureDate && !hasOverlap && !overlapsRunningTimer
     }
 
     var body: some View {
@@ -93,15 +119,30 @@ struct UsageEntryView: View {
                     if let durationMinutes {
                         LabeledContent("Screen time", value: "\(durationMinutes) minutes")
                             .accessibilityIdentifier("duration-preview")
+                        if endsNextDay {
+                            Label("Ends the next day", systemImage: "moon.stars")
+                                .font(.footnote)
+                                .foregroundStyle(AppTheme.textSecondary)
+                        }
                     } else {
-                        Label("End time must be later than start time.", systemImage: "exclamationmark.triangle.fill")
-                            .foregroundStyle(AppTheme.danger)
+                        Label("Start and end can't be the same time.", systemImage: "exclamationmark.triangle.fill")
+                            .foregroundStyle(AppTheme.dangerText)
                     }
 
                     if isFutureDate {
-                        Text("Usage cannot be recorded for a future date.")
+                        Text("Usage can only be logged for time that has already happened.")
                             .font(.footnote)
-                            .foregroundStyle(AppTheme.danger)
+                            .foregroundStyle(AppTheme.dangerText)
+                    }
+
+                    if overlapsRunningTimer {
+                        Label(
+                            "A timer is running for \(child.name) during this time. It will be recorded when it ends.",
+                            systemImage: "timer"
+                        )
+                        .font(.footnote)
+                        .foregroundStyle(AppTheme.dangerText)
+                        .accessibilityIdentifier("timer-overlap-warning")
                     }
 
                     if hasOverlap {

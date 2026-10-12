@@ -24,7 +24,12 @@ struct DeviceFormView: View {
     }
 
     init(children: [ChildProfile], device: Device? = nil, preferredChild: ChildProfile? = nil) {
-        let activeChildren = children.filter(\.isActive)
+        // Keep the current owner selectable even if they've been archived, so
+        // editing their device never leaves it without an owner.
+        var activeChildren = children.filter(\.isActive)
+        if let owner = device?.child, !owner.isActive, !activeChildren.contains(where: { $0.id == owner.id }) {
+            activeChildren.append(owner)
+        }
         self.children = activeChildren
         self.device = device
         _name = State(initialValue: device?.name ?? "")
@@ -58,7 +63,7 @@ struct DeviceFormView: View {
     }
 
     private var isValid: Bool {
-        Device.isValidName(name) && !hasDuplicateName
+        Device.isValidName(name) && !hasDuplicateName && (isShared || selectedChild != nil)
     }
 
     var body: some View {

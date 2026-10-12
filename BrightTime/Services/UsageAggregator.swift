@@ -78,7 +78,7 @@ enum UsageAggregator {
         on day: Date,
         childID: UUID,
         sessions: [UsageSession],
-        calendar: Calendar = .current
+        calendar: Calendar = AppCalendar.day
     ) -> Int {
         sessions
             .filter { session in
@@ -92,7 +92,7 @@ enum UsageAggregator {
         on day: Date,
         deviceID: UUID,
         sessions: [UsageSession],
-        calendar: Calendar = .current
+        calendar: Calendar = AppCalendar.day
     ) -> Int {
         sessions
             .filter { session in
@@ -107,7 +107,7 @@ enum UsageAggregator {
         childID: UUID,
         deviceID: UUID,
         sessions: [UsageSession],
-        calendar: Calendar = .current
+        calendar: Calendar = AppCalendar.day
     ) -> Int {
         sessions
             .filter { session in
@@ -122,7 +122,7 @@ enum UsageAggregator {
         on day: Date,
         child: ChildProfile,
         sessions: [UsageSession],
-        calendar: Calendar = .current
+        calendar: Calendar = AppCalendar.day
     ) -> DailyUsageSummary {
         DailyUsageSummary(
             usedMinutes: totalMinutes(

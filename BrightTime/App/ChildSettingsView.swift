@@ -4,6 +4,7 @@ import SwiftUI
 
 struct ChildSettingsView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
     @Query private var allChildren: [ChildProfile]
     @Query private var allUsageSessions: [UsageSession]
 
@@ -152,7 +153,7 @@ struct ChildSettingsView: View {
     }
 
     private var usageSection: some View {
-        let calendar = Calendar.current
+        let calendar = AppCalendar.day
         let now = Date.now
         let day = calendar.dateInterval(of: .day, for: now)!
         let week = calendar.dateInterval(of: .weekOfYear, for: now)!
@@ -192,6 +193,12 @@ struct ChildSettingsView: View {
         child.weekdayLimitMinutes = usesSchedule ? weekdayLimitMinutes : nil
         child.weekendLimitMinutes = usesSchedule ? weekendLimitMinutes : nil
         child.updatedAt = .now
-        do { try modelContext.save() } catch { saveErrorMessage = error.localizedDescription }
+        do {
+            try modelContext.save()
+            dismiss()
+        } catch {
+            modelContext.rollback()
+            saveErrorMessage = error.localizedDescription
+        }
     }
 }

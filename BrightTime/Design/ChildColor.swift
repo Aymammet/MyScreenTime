@@ -32,4 +32,20 @@ enum ChildColor: String, CaseIterable, Identifiable, Codable {
     }
 
     var displayName: String { rawValue.capitalized }
+
+    /// Same color as a 0xRRGGBB value, for widgets and Live Activities.
+    var hex: UInt32 {
+        switch self {
+        case .teal: 0x2F8F8A
+        case .blue: 0x3E76EC
+        case .indigo: 0x5D5CE6
+        case .purple: 0x8B5CF6
+        case .pink: 0xE25890
+        case .red: 0xE15B52
+        case .orange: 0xE6872F
+        case .yellow: 0xCFA521
+        case .green: 0x3F9A6E
+        case .slate: 0x515D6D
+        }
+    }
 }

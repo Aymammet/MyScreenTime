@@ -12,6 +12,7 @@ struct DevicesTab: View {
     @State private var filter: DeviceFilter = .all
     @State private var isAddingDevice = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @AppStorage(AppCalendar.Keys.revision) private var calendarRevision = 0
 
     private enum DeviceFilter: String, CaseIterable, Identifiable {
         case all = "All"
@@ -36,6 +37,7 @@ struct DevicesTab: View {
     }
 
     var body: some View {
+        let _ = calendarRevision
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(spacing: 10) {
@@ -51,7 +53,7 @@ struct DevicesTab: View {
                     } label: {
                         Label("Add", systemImage: "plus")
                             .font(.subheadline.bold())
-                            .foregroundStyle(.white)
+                            .foregroundStyle(AppTheme.onPrimary)
                             .padding(.horizontal, 14)
                             .padding(.vertical, 8)
                             .background(AppTheme.primary, in: Capsule())
@@ -306,7 +308,7 @@ struct DeviceDetailView: View {
     }
 
     private var metrics: [DeviceMetric] {
-        let calendar = Calendar.current
+        let calendar = AppCalendar.day
         let today = UsageAggregator.totalMinutes(on: .now, deviceID: device.id, sessions: sessions, calendar: calendar)
         let priorAverage = DeviceStats.priorDailyAverage(for: device, sessions: sessions, dayCount: 7)
         let week = DeviceStats.analysis(for: device, period: .week, children: children, sessions: sessions)
@@ -330,7 +332,7 @@ struct DeviceDetailView: View {
     }
 
     private var weeklyUsageByChild: [ChildDeviceUsage] {
-        guard let week = Calendar.current.dateInterval(of: .weekOfYear, for: .now) else { return [] }
+        guard let week = AppCalendar.day.dateInterval(of: .weekOfYear, for: .now) else { return [] }
 
         return children
             .compactMap { child in
@@ -393,7 +395,7 @@ enum DeviceStats {
 
     /// Average per day over the `dayCount` completed days before today.
     static func priorDailyAverage(for device: Device, sessions: [UsageSession], dayCount: Int) -> Int {
-        let calendar = Calendar.current
+        let calendar = AppCalendar.day
         let todayStart = calendar.startOfDay(for: .now)
         guard let start = calendar.date(byAdding: .day, value: -dayCount, to: todayStart) else { return 0 }
         let total = sessions
@@ -404,7 +406,7 @@ enum DeviceStats {
 
     /// Per-day totals for the last seven days, today included (for sparklines).
     static func lastSevenDays(for device: Device, sessions: [UsageSession]) -> [DeviceTrendPoint] {
-        let calendar = Calendar.current
+        let calendar = AppCalendar.day
         let todayStart = calendar.startOfDay(for: .now)
         let deviceSessions = sessions.filter { $0.device?.id == device.id }
 

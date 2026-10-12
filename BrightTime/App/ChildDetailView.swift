@@ -56,6 +56,13 @@ struct ChildDetailView: View {
                     .listRowBackground(Color.clear)
             }
 
+            Section {
+                TimeBankCard(child: child)
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+            }
+            .listRowSeparator(.hidden)
+
             Section("Devices") {
                 if activeDevices.isEmpty {
                     ContentUnavailableView(
@@ -273,7 +280,7 @@ struct ChildDetailView: View {
                 .foregroundStyle(statusColor)
                 .accessibilityIdentifier("today-limit-balance")
 
-            Text("\(child.formattedLimit(on: .now)) limit today")
+            Text(limitCaption)
                 .font(.caption)
                 .foregroundStyle(AppTheme.textTertiary)
         }
@@ -281,6 +288,12 @@ struct ChildDetailView: View {
         .padding(22)
         .background(AppTheme.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .shadow(color: .black.opacity(0.04), radius: 2, y: 1)
+    }
+
+    private var limitCaption: String {
+        let bonus = child.bonusMinutes(on: .now)
+        guard bonus > 0 else { return "\(child.formattedLimit(on: .now)) limit today" }
+        return "\(child.formattedLimit(on: .now)) limit today · includes +\(TimeText.compact(bonus)) from the bank"
     }
 
     private var deviceProportionBar: some View {
@@ -393,7 +406,7 @@ struct ChildDetailView: View {
         ChildDetailView(child: ChildProfile(name: "Sam"))
     }
     .modelContainer(
-        for: [ParentProfile.self, ChildProfile.self, Device.self, UsageSession.self],
+        for: [ParentProfile.self, ChildProfile.self, Device.self, UsageSession.self, EarnActivity.self, TimeCredit.self],
         inMemory: true
     )
 }

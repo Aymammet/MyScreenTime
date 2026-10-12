@@ -4,19 +4,45 @@ import UIKit
 enum AppTheme {
     // MARK: - Brand
     // Taken straight from the sun-clock app icon: teal for "on track", a deep teal
-    // for text, warm cream surfaces. Brighter than the first dark-green design so
-    // the app reads calm and optimistic rather than heavy.
+    // for text, warm cream surfaces. Dark mode is "true black" (OLED): pure black
+    // background, near-black cards, teal only as an accent.
 
-    static let primary = adaptive(light: 0x2F8F8A, dark: 0x3AA39D)
-    static let primaryDeep = adaptive(light: 0x173F3C, dark: 0xF3EEE4)
-    static let primaryTint = adaptive(light: 0xE2F1EE, dark: 0x1D3F3C)
-    static let primarySoft = adaptive(light: 0xA9D6D0, dark: 0x2C6662)
+    static let primary = adaptive(light: 0x2F8F8A, dark: 0x3FB0A9)
+    static let primaryDeep = adaptive(light: 0x173F3C, dark: 0xF2F2EF)
+    static let primaryTint = adaptive(light: 0xE2F1EE, dark: 0x0E2A28)
+    static let primarySoft = adaptive(light: 0xA9D6D0, dark: 0x1F5752)
     static let cream = Color(hex: 0xFBF3E4)
 
-    /// Hero-card gradient (Home "Family today" card, selected tab pill).
+    /// Text and icons placed on a solid `primary` fill (buttons, selected tab).
+    /// White on light teal; near-black on the brighter dark-mode teal.
+    static let onPrimary = adaptive(light: 0xFFFFFF, dark: 0x00110F)
+
+    /// Hero card ("Family today"): a bright teal gradient in light mode. In dark
+    /// mode (true black) it goes dark with a teal outline so nothing glows at night.
     static var heroGradient: LinearGradient {
         LinearGradient(
-            colors: [Color(hex: 0x3A9D97), Color(hex: 0x2F8F8A), Color(hex: 0x1F6A66)],
+            colors: [
+                adaptive(light: 0x3A9D97, dark: 0x0F2E2C),
+                adaptive(light: 0x2F8F8A, dark: 0x0C2524),
+                adaptive(light: 0x1F6A66, dark: 0x0A1E1D)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+    static let heroText = adaptive(light: 0xFFFFFF, dark: 0xF2F2EF)
+    static let heroBorder = adaptive(light: 0xFFFFFF, dark: 0x1D4643, lightAlpha: 0, darkAlpha: 1)
+    static let heroChip = adaptive(light: 0xFFFFFF, dark: 0x3FB0A9, lightAlpha: 0.16, darkAlpha: 0.16)
+    static let heroRing = adaptive(light: 0xFBF3E4, dark: 0x3FB0A9)
+    static let heroRingTrack = adaptive(light: 0xFFFFFF, dark: 0x1A2A29, lightAlpha: 0.22, darkAlpha: 1)
+    static let heroRays = adaptive(light: 0xFFFFFF, dark: 0x3FB0A9, lightAlpha: 0.5, darkAlpha: 0.55)
+    static let heroGlow = adaptive(light: 0xFFFFFF, dark: 0x3FB0A9, lightAlpha: 0.18, darkAlpha: 0.08)
+
+    /// Selected tab pill and other solid accent fills: teal gradient in light mode,
+    /// flat bright teal in dark mode.
+    static var accentGradient: LinearGradient {
+        LinearGradient(
+            colors: [adaptive(light: 0x3A9D97, dark: 0x3FB0A9), adaptive(light: 0x1F6A66, dark: 0x3FB0A9)],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
@@ -33,21 +59,25 @@ enum AppTheme {
     static let success = primary
     static let successTint = primaryTint
     static let warning = adaptive(light: 0xE09A2D, dark: 0xF0AE45)
-    static let warningTint = adaptive(light: 0xFBEFD9, dark: 0x3A2E17)
+    static let warningTint = adaptive(light: 0xFBEFD9, dark: 0x2A200E)
     /// Amber is too light for small text on cream; use this for amber labels.
     static let warningText = adaptive(light: 0xA86A0E, dark: 0xF0AE45)
     static let danger = adaptive(light: 0xDD5E4B, dark: 0xEE7562)
-    static let dangerTint = adaptive(light: 0xFBE4DF, dark: 0x3D221E)
+    static let dangerTint = adaptive(light: 0xFBE4DF, dark: 0x33201C)
     static let dangerText = adaptive(light: 0xB4402F, dark: 0xEE7562)
+    /// Text on a solid coral fill: white in light mode, near-black on dark-mode coral.
+    static let onDanger = adaptive(light: 0xFFFFFF, dark: 0x1A0705)
+    /// Mid step of the Monthly heatmap; adapts so numbers stay readable.
+    static let heatMid = adaptive(light: 0x7CC2BB, dark: 0x2A706B)
 
     // MARK: - Surfaces & text
 
-    static let background = adaptive(light: 0xFAF5EC, dark: 0x0F2523)
-    static let surface = adaptive(light: 0xFFFFFF, dark: 0x17312F)
-    static let surfaceMuted = adaptive(light: 0xF1ECE2, dark: 0x1E3A37)
-    static let cardBorder = adaptive(light: 0xEEE7DA, dark: 0x23413E)
-    static let textSecondary = adaptive(light: 0x677976, dark: 0xA3B5B1)
-    static let textTertiary = adaptive(light: 0x9AA8A5, dark: 0x70827E)
+    static let background = adaptive(light: 0xFAF5EC, dark: 0x000000)
+    static let surface = adaptive(light: 0xFFFFFF, dark: 0x101514)
+    static let surfaceMuted = adaptive(light: 0xF1ECE2, dark: 0x1A2120)
+    static let cardBorder = adaptive(light: 0xEEE7DA, dark: 0x1F2726)
+    static let textSecondary = adaptive(light: 0x677976, dark: 0x9AA3A1)
+    static let textTertiary = adaptive(light: 0x9AA8A5, dark: 0x5F6A68)
 
     // MARK: - Shape & motion
 
@@ -108,9 +138,16 @@ enum AppTheme {
         id.stableIndex(count: count)
     }
 
-    private static func adaptive(light: UInt32, dark: UInt32) -> Color {
+    private static func adaptive(
+        light: UInt32,
+        dark: UInt32,
+        lightAlpha: CGFloat = 1,
+        darkAlpha: CGFloat = 1
+    ) -> Color {
         Color(uiColor: UIColor { traits in
-            UIColor(hex: traits.userInterfaceStyle == .dark ? dark : light)
+            traits.userInterfaceStyle == .dark
+                ? UIColor(hex: dark, alpha: darkAlpha)
+                : UIColor(hex: light, alpha: lightAlpha)
         })
     }
 }
@@ -126,12 +163,12 @@ extension Color {
 }
 
 extension UIColor {
-    convenience init(hex: UInt32) {
+    convenience init(hex: UInt32, alpha: CGFloat = 1) {
         self.init(
             red: CGFloat((hex >> 16) & 0xFF) / 255,
             green: CGFloat((hex >> 8) & 0xFF) / 255,
             blue: CGFloat(hex & 0xFF) / 255,
-            alpha: 1
+            alpha: alpha
         )
     }
 }

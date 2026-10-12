@@ -3,29 +3,26 @@ import SwiftUI
 
 @main
 struct BrightTimeApp: App {
-    private let modelContainer: ModelContainer
+    @UIApplicationDelegateAdaptor(BrightTimeAppDelegate.self) private var appDelegate
+    @State private var appLock = AppLock()
+    @State private var familySync = FamilySync.shared
+    @StateObject private var timerManager = AppServices.shared.timerManager
 
     init() {
-        let isUITesting = CommandLine.arguments.contains("-ui-testing")
-        let configuration = ModelConfiguration(isStoredInMemoryOnly: isUITesting)
-
-        do {
-            modelContainer = try ModelContainer(
-                for: ParentProfile.self,
-                ChildProfile.self,
-                Device.self,
-            UsageSession.self,
-                configurations: configuration
-            )
-        } catch {
-            fatalError("Unable to create the BrightTime data store: \(error)")
+        AppCalendar.apply()
+        if !AppServices.shared.isUITesting {
+            FamilySync.shared.start(with: AppServices.shared.modelContainer)
         }
+        BrightTimeShortcuts.updateAppShortcutParameters()
     }
 
     var body: some Scene {
         WindowGroup {
             RootView()
+                .environment(appLock)
+                .environment(familySync)
+                .environmentObject(timerManager)
         }
-        .modelContainer(modelContainer)
+        .modelContainer(AppServices.shared.modelContainer)
     }
 }

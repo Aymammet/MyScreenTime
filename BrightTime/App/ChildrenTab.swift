@@ -11,6 +11,7 @@ struct ChildrenTab: View {
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @AppStorage(AppCalendar.Keys.revision) private var calendarRevision = 0
     @State private var selectedChildID: UUID?
     @State private var period: AnalysisPeriod = .week
     @State private var childToEdit: ChildProfile?
@@ -20,6 +21,7 @@ struct ChildrenTab: View {
     }
 
     var body: some View {
+        let _ = calendarRevision
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 if children.isEmpty {
@@ -95,7 +97,7 @@ struct ChildrenTab: View {
                                 .font(.subheadline.weight(.bold))
                                 .lineLimit(1)
                         }
-                        .foregroundStyle(isSelected ? Color.white : AppTheme.primaryDeep)
+                        .foregroundStyle(isSelected ? AppTheme.onPrimary : AppTheme.primaryDeep)
                         .padding(.leading, 4)
                         .padding(.trailing, 14)
                         .padding(.vertical, 4)
@@ -164,7 +166,7 @@ struct ChildrenTab: View {
 
     private func limitsCard(_ child: ChildProfile) -> some View {
         let hasSchedule = child.weekdayLimitMinutes != nil && child.weekendLimitMinutes != nil
-        let isWeekend = Calendar.current.isDateInWeekend(.now)
+        let isWeekend = AppCalendar.day.isDateInWeekend(.now)
 
         return VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -296,7 +298,7 @@ struct ChildrenTab: View {
             sessions: sessions,
             devices: devicesAvailable(to: child)
         )
-        let calendar = Calendar.current
+        let calendar = AppCalendar.day
 
         return VStack(alignment: .leading, spacing: 12) {
             HStack {

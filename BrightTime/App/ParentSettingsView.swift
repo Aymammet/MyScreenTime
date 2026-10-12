@@ -2,13 +2,43 @@ import PhotosUI
 import SwiftData
 import SwiftUI
 
+/// How BrightTime looks, independent of the iPhone's own setting.
+enum AppAppearance: String, CaseIterable, Identifiable {
+    case system, light, dark
+
+    static let storageKey = "brighttime.appearance"
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .system: "System"
+        case .light: "Light"
+        case .dark: "Dark"
+        }
+    }
+
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system: nil
+        case .light: .light
+        case .dark: .dark
+        }
+    }
+}
+
 struct ParentSettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(AppLock.self) private var lock
+    @Environment(FamilySync.self) private var familySync
     @Query(sort: \ChildProfile.createdAt) private var allChildren: [ChildProfile]
 
     let parent: ParentProfile
     let onSignOut: () -> Void
+
+    @AppStorage(AppAppearance.storageKey) private var appearance: AppAppearance = .system
+    @AppStorage(AppCalendar.Keys.revision) private var calendarRevision = 0
 
     @State private var name: String
     @State private var notificationsEnabled: Bool
@@ -16,6 +46,8 @@ struct ParentSettingsView: View {
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var photoData: Data?
     @State private var isConfirmingSignOut = false
+    @State private var passcodeFlow: PasscodeSetupView.Mode?
+    @State private var lockAfterPasscodeCreated = false
 
     init(parent: ParentProfile, onSignOut: @escaping () -> Void = {}) {
         self.parent = parent
@@ -37,79 +69,16 @@ struct ParentSettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Parent profile") {
-                    HStack(spacing: 14) {
-                        profileAvatar
-
-                        VStack(alignment: .leading, spacing: 8) {
-                            PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                                Label("Choose profile photo", systemImage: "photo")
-                            }
-                            .accessibilityIdentifier("settings-parent-photo-picker")
-
-                            if photoData != nil {
-                                Button("Use a default avatar", role: .destructive) {
-                                    photoData = nil
-                                }
-                                .font(.caption)
-                            }
-
-                            Button("Sign Out", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive) {
-                                isConfirmingSignOut = true
-                            }
-                            .font(.subheadline.weight(.semibold))
-                            .accessibilityIdentifier("parent-sign-out-button")
-                        }
-                    }
-
-                    TextField("Your name", text: $name)
-                        .textContentType(.name)
-                        .textInputAutocapitalization(.words)
-                        .onChange(of: name) { _, newValue in
-                            name = String(newValue.prefix(ParentProfile.maximumNameLength))
-                        }
-
-                    if !name.isEmpty, !isNameValid {
-                        Text("Enter a name between 2 and 16 characters.")
-                            .font(.footnote)
-                            .foregroundStyle(AppTheme.danger)
-                    }
-
-                    DefaultAvatarPicker(
-                        avatars: DefaultProfileAvatar.allCases,
-                        selection: $selectedAvatar
-                    )
-                    .accessibilityIdentifier("settings-parent-default-avatar-picker")
-                }
-
-                Section("Preferences") {
-                    Toggle("Screen-time notifications", isOn: $notificationsEnabled)
-                    LabeledContent("Time zone", value: parent.timeZoneIdentifier)
-                }
-
-                Section("Children") {
-                    if children.isEmpty {
-                        Text("No children added yet")
-                            .foregroundStyle(.secondary)
-                    } else {
-                        ForEach(children) { child in
-                            NavigationLink {
-                                ChildSettingsView(parent: parent, child: child)
-                            } label: {
-                                HStack(spacing: 12) {
-                                    ChildAvatarView(child: child, size: 40)
-                                    VStack(alignment: .leading) {
-                                        Text(child.name).font(.headline)
-                                        Text(child.isActive ? "Active" : "Archived")
-                                            .font(.caption).foregroundStyle(.secondary)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                profileSection
+                preferencesSection
+                familySection
+                securitySection
+                childrenSection
+                accountSection
             }
-            .navigationTitle("Parent Settings")
+            .scrollContentBackground(.hidden)
+            .background(AppTheme.background.ignoresSafeArea())
+            .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .onChange(of: selectedPhoto) { _, item in
                 Task {
@@ -117,18 +86,30 @@ struct ParentSettingsView: View {
                     photoData = resizedPhotoData(data)
                 }
             }
-            .confirmationDialog(
-                "Sign out of BrightTime?",
-                isPresented: $isConfirmingSignOut,
-                titleVisibility: .visible
-            ) {
-                Button("Sign Out", role: .destructive) {
-                    dismiss()
-                    onSignOut()
+            .sheet(isPresented: $isConfirmingSignOut) {
+                SignOutSheet {
+                    signOut()
                 }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("Your family data will remain on this device.")
+            }
+            .sheet(
+                isPresented: Binding(
+                    get: { passcodeFlow != nil },
+                    set: { if !$0 { passcodeFlow = nil } }
+                ),
+                onDismiss: {
+                    // Swiping the sheet away must not leave "lock after" armed for
+                    // a later, unrelated passcode change.
+                    lockAfterPasscodeCreated = false
+                }
+            ) {
+                if let passcodeFlow {
+                    PasscodeSetupView(mode: passcodeFlow) { completed in
+                        if completed, lockAfterPasscodeCreated {
+                            signOut()
+                        }
+                        lockAfterPasscodeCreated = false
+                    }
+                }
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -141,9 +122,265 @@ struct ParentSettingsView: View {
                     Button("Save") {
                         saveChanges()
                     }
+                    .fontWeight(.semibold)
                     .disabled(!isNameValid)
                 }
             }
+        }
+    }
+
+    // MARK: - Sections
+
+    private var profileSection: some View {
+        Section {
+            HStack(spacing: 14) {
+                profileAvatar
+
+                VStack(alignment: .leading, spacing: 8) {
+                    PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                        Label("Choose profile photo", systemImage: "photo")
+                            .font(.subheadline.weight(.semibold))
+                    }
+                    .accessibilityIdentifier("settings-parent-photo-picker")
+
+                    if photoData != nil {
+                        Button("Use a default avatar") {
+                            photoData = nil
+                        }
+                        .font(.footnote)
+                        .foregroundStyle(AppTheme.textSecondary)
+                    }
+                }
+            }
+            .padding(.vertical, 4)
+
+            TextField("Your name", text: $name)
+                .textContentType(.name)
+                .textInputAutocapitalization(.words)
+                .onChange(of: name) { _, newValue in
+                    name = String(newValue.prefix(ParentProfile.maximumNameLength))
+                }
+
+            if !name.isEmpty, !isNameValid {
+                Text("Enter a name between 2 and 16 characters.")
+                    .font(.footnote)
+                    .foregroundStyle(AppTheme.dangerText)
+            }
+
+            DefaultAvatarPicker(
+                avatars: DefaultProfileAvatar.allCases,
+                selection: $selectedAvatar
+            )
+            .accessibilityIdentifier("settings-parent-default-avatar-picker")
+        } header: {
+            Text("Parent profile")
+        }
+        .listRowBackground(AppTheme.surface)
+    }
+
+    private var preferencesSection: some View {
+        Section {
+            Toggle(isOn: $notificationsEnabled) {
+                settingLabel("Notifications", systemImage: "bell.fill", tint: AppTheme.primary)
+            }
+
+            Picker(selection: $appearance) {
+                ForEach(AppAppearance.allCases) { option in
+                    Text(option.title).tag(option)
+                }
+            } label: {
+                settingLabel("Appearance", systemImage: "circle.lefthalf.filled", tint: Color(hex: 0x7B61D1))
+            }
+            .accessibilityIdentifier("settings-appearance-picker")
+
+            NavigationLink {
+                TimeAndDaySettingsView()
+            } label: {
+                LabeledContent {
+                    Text(timeSummary)
+                        .font(.footnote)
+                        .multilineTextAlignment(.trailing)
+                } label: {
+                    settingLabel("Time & Day", systemImage: "globe", tint: AppTheme.warning)
+                }
+            }
+            .accessibilityIdentifier("settings-time-and-day-link")
+        } header: {
+            Text("Preferences")
+        }
+        .listRowBackground(AppTheme.surface)
+    }
+
+    private var familySection: some View {
+        Section {
+            NavigationLink {
+                FamilySharingView()
+            } label: {
+                LabeledContent {
+                    Text(familySummary)
+                        .font(.footnote)
+                } label: {
+                    settingLabel("Co-parents", systemImage: "person.2.fill", tint: AppTheme.primary)
+                }
+            }
+            .accessibilityIdentifier("settings-co-parents-link")
+
+            NavigationLink {
+                EarnActivitiesView()
+            } label: {
+                settingLabel("Earn-time activities", systemImage: "star.circle.fill", tint: AppTheme.warning)
+            }
+            .accessibilityIdentifier("settings-earn-activities-link")
+        } header: {
+            Text("Family")
+        }
+        .listRowBackground(AppTheme.surface)
+    }
+
+    private var familySummary: String {
+        switch familySync.role {
+        case .none: "Off"
+        case .owner: "Sharing"
+        case .member: "Joined"
+        }
+    }
+
+    @ViewBuilder
+    private var securitySection: some View {
+        @Bindable var lock = lock
+
+        Section {
+            if lock.hasPasscode {
+                if lock.biometry != .none {
+                    Toggle(isOn: $lock.useBiometrics) {
+                        settingLabel("Unlock with \(lock.biometry.name)", systemImage: lock.biometry.systemImage, tint: AppTheme.primary)
+                    }
+                    .accessibilityIdentifier("settings-biometrics-toggle")
+
+                    if lock.useBiometrics, !lock.isBiometryEnrolled {
+                        Label("\(lock.biometry.name) isn't set up on this iPhone yet. Turn it on in iPhone Settings → \(lock.biometry.name) & Passcode.", systemImage: "info.circle")
+                            .font(.caption)
+                            .foregroundStyle(AppTheme.textSecondary)
+                    }
+                }
+
+                Picker(selection: $lock.autoLock) {
+                    ForEach(AppLock.AutoLock.allCases) { option in
+                        Text(option.title).tag(option)
+                    }
+                } label: {
+                    settingLabel("Auto-lock", systemImage: "timer", tint: AppTheme.primary)
+                }
+                .accessibilityIdentifier("settings-auto-lock-picker")
+
+                Button {
+                    passcodeFlow = .change
+                } label: {
+                    settingLabel("Change passcode", systemImage: "number", tint: AppTheme.primary)
+                }
+                .foregroundStyle(AppTheme.primaryDeep)
+
+                Button {
+                    passcodeFlow = .remove
+                } label: {
+                    Text("Turn off passcode")
+                        .foregroundStyle(AppTheme.dangerText)
+                }
+            } else {
+                Button {
+                    passcodeFlow = .create
+                } label: {
+                    settingLabel("Set parent passcode", systemImage: "lock.fill", tint: AppTheme.primary)
+                }
+                .foregroundStyle(AppTheme.primaryDeep)
+                .accessibilityIdentifier("settings-set-passcode-button")
+            }
+        } header: {
+            Text("Security")
+        } footer: {
+            Text(lock.hasPasscode
+                 ? "Kids can't change limits or stop timers without you."
+                 : "Add a passcode so only you can change limits, stop timers or sign back in.")
+        }
+        .listRowBackground(AppTheme.surface)
+    }
+
+    private var childrenSection: some View {
+        Section {
+            if children.isEmpty {
+                Text("No children added yet")
+                    .foregroundStyle(AppTheme.textSecondary)
+            } else {
+                ForEach(children) { child in
+                    NavigationLink {
+                        ChildSettingsView(parent: parent, child: child)
+                    } label: {
+                        HStack(spacing: 12) {
+                            ChildAvatarView(child: child, size: 40)
+                            VStack(alignment: .leading) {
+                                Text(child.name).font(.headline)
+                                Text(child.isActive ? "Active" : "Archived")
+                                    .font(.caption)
+                                    .foregroundStyle(AppTheme.textSecondary)
+                            }
+                        }
+                    }
+                }
+            }
+        } header: {
+            Text("Children")
+        }
+        .listRowBackground(AppTheme.surface)
+    }
+
+    private var accountSection: some View {
+        Section {
+            Button {
+                if lock.hasPasscode {
+                    signOut()
+                } else {
+                    lockAfterPasscodeCreated = true
+                    passcodeFlow = .create
+                }
+            } label: {
+                Label("Lock BrightTime now", systemImage: "lock.fill")
+                    .foregroundStyle(AppTheme.primary)
+            }
+            .accessibilityIdentifier("settings-lock-now-button")
+
+            Button {
+                isConfirmingSignOut = true
+            } label: {
+                Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
+                    .foregroundStyle(AppTheme.dangerText)
+            }
+            .accessibilityIdentifier("parent-sign-out-button")
+        } header: {
+            Text("Account")
+        } footer: {
+            Text("Your family's data stays on this iPhone when you sign out.")
+        }
+        .listRowBackground(AppTheme.surface)
+    }
+
+    // MARK: - Pieces
+
+    private var timeSummary: String {
+        _ = calendarRevision
+        let zone = AppCalendar.isAutomatic ? "Automatic" : AppCalendar.city(of: AppCalendar.effectiveTimeZone)
+        let reset = AppCalendar.dayResetHour == 0 ? "" : " · resets \(AppCalendar.resetHourLabel(AppCalendar.dayResetHour))"
+        return zone + reset
+    }
+
+    private func settingLabel(_ title: String, systemImage: String, tint: Color) -> some View {
+        Label {
+            Text(title)
+        } icon: {
+            Image(systemName: systemImage)
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(tint)
+                .frame(width: 28, height: 28)
+                .background(tint.opacity(0.16), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         }
     }
 
@@ -157,7 +394,7 @@ struct ParentSettingsView: View {
         }
         .frame(width: 68, height: 68)
         .clipShape(Circle())
-        .overlay { Circle().stroke(.white, lineWidth: 2) }
+        .overlay { Circle().stroke(AppTheme.cardBorder, lineWidth: 2) }
     }
 
     private func resizedPhotoData(_ data: Data) -> Data? {
@@ -170,11 +407,21 @@ struct ParentSettingsView: View {
         }
     }
 
+    /// Closes Settings first, then locks once the sheet is gone.
+    private func signOut() {
+        dismiss()
+        Task {
+            try? await Task.sleep(for: .milliseconds(350))
+            onSignOut()
+        }
+    }
+
     private func saveChanges() {
         parent.name = ParentProfile.normalizedName(name)
         parent.defaultAvatar = selectedAvatar
         parent.profilePhotoData = photoData
         parent.notificationsEnabled = notificationsEnabled
+        parent.timeZoneIdentifier = AppCalendar.effectiveTimeZone.identifier
         parent.updatedAt = .now
         try? modelContext.save()
         dismiss()

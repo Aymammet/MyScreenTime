@@ -5,6 +5,7 @@ import SwiftUI
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @AppStorage(AppCalendar.Keys.revision) private var calendarRevision = 0
     @Query(sort: \ChildProfile.createdAt) private var allChildren: [ChildProfile]
     @Query private var allUsageSessions: [UsageSession]
     @Query private var allDevices: [Device]
@@ -17,7 +18,7 @@ struct ContentView: View {
     @State private var childToEdit: ChildProfile?
     @State private var childToArchive: ChildProfile?
     @State private var childForTimer: ChildProfile?
-    @StateObject private var timerManager = ScreenTimerManager()
+    @EnvironmentObject private var timerManager: ScreenTimerManager
 
     private var activeChildren: [ChildProfile] {
         allChildren.filter { $0.parent?.id == parent.id && $0.isActive }
@@ -42,7 +43,7 @@ struct ContentView: View {
     /// Family usage yesterday up to this same time of day, so the comparison is fair
     /// in the morning instead of pitting a few hours against a whole day.
     private var yesterdaySoFarMinutes: Int? {
-        let calendar = Calendar.current
+        let calendar = AppCalendar.day
         guard !activeChildren.isEmpty,
               let sameTimeYesterday = calendar.date(byAdding: .day, value: -1, to: .now) else { return nil }
         let activeIDs = Set(activeChildren.map(\.id))
@@ -63,11 +64,14 @@ struct ContentView: View {
     }
 
     var body: some View {
+        let _ = calendarRevision
         NavigationStack {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 14) {
                     header
                         .padding(.bottom, 4)
+
+                    TimeZoneNotice()
 
                     familyHero
 
@@ -164,20 +168,6 @@ struct ContentView: View {
         }
         .tint(AppTheme.primary)
         .sensoryFeedback(.impact(weight: .medium), trigger: timerManager.timers.map(\.id))
-        .overlay {
-            TimelineView(.periodic(from: .now, by: 1)) { timeline in
-                Color.clear
-                    .onChange(of: timeline.date) { _, now in
-                        timerManager.completeDueTimers(
-                            now: now,
-                            children: allChildren,
-                            devices: allDevices,
-                            context: modelContext
-                        )
-                    }
-            }
-            .allowsHitTesting(false)
-        }
 #if DEBUG
         .task(id: sampleDataSeedID) {
             guard !CommandLine.arguments.contains("-ui-testing") else { return }
@@ -227,7 +217,7 @@ struct ContentView: View {
     }
 
     private var greeting: String {
-        let hour = Calendar.current.component(.hour, from: .now)
+        let hour = AppCalendar.display.component(.hour, from: .now)
         let partOfDay = hour < 12 ? "Good morning" : (hour < 17 ? "Good afternoon" : "Good evening")
         let firstName = parent.name.split(separator: " ").first.map(String.init) ?? ""
         return firstName.isEmpty ? partOfDay : "\(partOfDay), \(firstName)"
@@ -260,9 +250,9 @@ struct ContentView: View {
 
                 SunRingView(
                     progress: progress,
-                    color: AppTheme.cream,
-                    trackColor: Color.white.opacity(0.22),
-                    rayColor: Color.white.opacity(0.5),
+                    color: AppTheme.heroRing,
+                    trackColor: AppTheme.heroRingTrack,
+                    rayColor: AppTheme.heroRays,
                     size: 108,
                     lineWidth: 9
                 ) {
@@ -280,19 +270,23 @@ struct ContentView: View {
                 }
             }
         }
-        .foregroundStyle(.white)
+        .foregroundStyle(AppTheme.heroText)
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(AppTheme.heroGradient, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
         .overlay(alignment: .topTrailing) {
             Circle()
-                .fill(RadialGradient(colors: [.white.opacity(0.18), .clear], center: .center, startRadius: 0, endRadius: 100))
+                .fill(RadialGradient(colors: [AppTheme.heroGlow, .clear], center: .center, startRadius: 0, endRadius: 100))
                 .frame(width: 200, height: 200)
                 .offset(x: 50, y: -70)
                 .allowsHitTesting(false)
         }
         .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
-        .shadow(color: AppTheme.primary.opacity(0.35), radius: 16, y: 10)
+        .overlay {
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .stroke(AppTheme.heroBorder, lineWidth: 1)
+        }
+        .shadow(color: AppTheme.primary.opacity(0.3), radius: 16, y: 10)
         .animation(AppTheme.motion(reduceMotion: reduceMotion), value: familyUsedMinutes)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Family screen time today")
@@ -328,7 +322,7 @@ struct ContentView: View {
             .minimumScaleFactor(0.8)
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
-            .background(.white.opacity(0.16), in: Capsule())
+            .background(AppTheme.heroChip, in: Capsule())
     }
 
     // MARK: - Today by hour
@@ -347,7 +341,7 @@ struct ContentView: View {
             if hasUsage {
                 Chart(usage) { point in
                     BarMark(
-                        x: .value("Hour", point.hour),
+                        x: .value("Hour", point.slot),
                         y: .value("Minutes", point.minutes)
                     )
                     .foregroundStyle(point.hour == peak?.hour ? AppTheme.primary : AppTheme.primarySoft)
@@ -355,10 +349,12 @@ struct ContentView: View {
                 }
                 .chartXScale(domain: -1...24)
                 .chartXAxis {
+                    // Slots start at the day-reset hour, so 12–3 AM sits at the
+                    // end of the evening it belongs to, not the start of the chart.
                     AxisMarks(values: [0, 6, 12, 18]) { value in
                         AxisValueLabel {
-                            if let hour = value.as(Int.self) {
-                                Text(hourName(hour))
+                            if let slot = value.as(Int.self) {
+                                Text(hourName((slot + AppCalendar.dayResetHour) % 24))
                                     .font(.caption2)
                                     .foregroundStyle(AppTheme.textTertiary)
                             }
@@ -378,22 +374,26 @@ struct ContentView: View {
     }
 
     private var hourlyUsage: [HourlyUsage] {
-        let calendar = Calendar.current
+        let dayCalendar = AppCalendar.day
+        let clock = AppCalendar.display
         let activeIDs = Set(activeChildren.map(\.id))
         var minutes = Array(repeating: 0, count: 24)
 
         for session in allUsageSessions {
             guard let childID = session.child?.id,
                   activeIDs.contains(childID),
-                  calendar.isDateInToday(session.startedAt) else { continue }
-            minutes[calendar.component(.hour, from: session.startedAt)] += session.durationMinutes
+                  dayCalendar.isDateInToday(session.startedAt) else { continue }
+            minutes[clock.component(.hour, from: session.startedAt)] += session.durationMinutes
         }
 
-        return minutes.enumerated().map { HourlyUsage(hour: $0.offset, minutes: $0.element) }
+        let resetHour = AppCalendar.dayResetHour
+        return minutes.enumerated().map {
+            HourlyUsage(hour: $0.offset, slot: ($0.offset - resetHour + 24) % 24, minutes: $0.element)
+        }
     }
 
     private func hourName(_ hour: Int) -> String {
-        guard let date = Calendar.current.date(bySettingHour: hour, minute: 0, second: 0, of: .now) else {
+        guard let date = AppCalendar.display.date(bySettingHour: hour, minute: 0, second: 0, of: .now) else {
             return "\(hour)"
         }
         return date.formatted(.dateTime.hour())
@@ -512,7 +512,7 @@ struct ContentView: View {
                 } label: {
                     Label("Stop", systemImage: "stop.fill")
                         .font(.subheadline.bold())
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppTheme.onPrimary)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 8)
                         .background(AppTheme.primary, in: Capsule())
@@ -522,9 +522,11 @@ struct ContentView: View {
                 .accessibilityIdentifier("stop-timer-\(child.id.uuidString)")
             }
         } else {
-            let readyText: String = devices.isEmpty
+            let deviceText: String = devices.isEmpty
                 ? "Add a device to use timers"
                 : "\(devices.count) " + (devices.count == 1 ? "device ready" : "devices ready")
+            let bank = child.bankBalance
+            let readyText = bank > 0 && !devices.isEmpty ? "\(deviceText) · \(TimeText.compact(bank)) banked" : deviceText
 
             HStack(spacing: 8) {
                 Text(readyText)
@@ -592,7 +594,7 @@ struct ContentView: View {
     }
 
     private func devicesUsedToday(by child: ChildProfile) -> [String] {
-        let calendar = Calendar.current
+        let calendar = AppCalendar.day
         var seen = Set<UUID>()
         var names: [String] = []
         for session in allUsageSessions.sorted(by: { $0.startedAt < $1.startedAt }) {
@@ -616,6 +618,14 @@ struct ContentView: View {
     }
 
     private func archive(_ child: ChildProfile) {
+        // Record and stop a running timer first; once archived, its card (and
+        // Stop button) disappear.
+        timerManager.stopTimer(
+            forChildID: child.id,
+            children: allChildren,
+            devices: allDevices,
+            context: modelContext
+        )
         child.isActive = false
         child.updatedAt = .now
         try? modelContext.save()
@@ -631,14 +641,18 @@ struct ContentView: View {
 
 private struct HourlyUsage: Identifiable {
     let hour: Int
+    /// Position on the chart, counted from the day-reset hour.
+    let slot: Int
     let minutes: Int
     var id: Int { hour }
 }
 
 #Preview {
     ContentView(parent: ParentProfile(name: "Taylor"))
+        .environmentObject(ScreenTimerManager())
+        .environment(AppLock())
         .modelContainer(
-            for: [ParentProfile.self, ChildProfile.self, Device.self, UsageSession.self],
+            for: [ParentProfile.self, ChildProfile.self, Device.self, UsageSession.self, EarnActivity.self, TimeCredit.self],
             inMemory: true
         )
 }

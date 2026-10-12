@@ -37,7 +37,7 @@ struct ParentProfilePersistenceTests {
 
     @Test("A parent profile can be stored and fetched")
     func storesAndFetchesProfile() throws {
-        let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
+        let configuration = ModelConfiguration(isStoredInMemoryOnly: true, groupContainer: .none, cloudKitDatabase: .none)
         let container = try ModelContainer(
             for: ParentProfile.self,
             ChildProfile.self,
@@ -80,7 +80,7 @@ struct ParentProfilePersistenceTests {
 
     @Test("A parent's profile photo is stored with their profile")
     func storesParentProfilePhoto() throws {
-        let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
+        let configuration = ModelConfiguration(isStoredInMemoryOnly: true, groupContainer: .none, cloudKitDatabase: .none)
         let container = try ModelContainer(
             for: ParentProfile.self,
             ChildProfile.self,
@@ -99,7 +99,7 @@ struct ParentProfilePersistenceTests {
 
     @Test("A child is linked to its parent and persists")
     func storesChildForParent() throws {
-        let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
+        let configuration = ModelConfiguration(isStoredInMemoryOnly: true, groupContainer: .none, cloudKitDatabase: .none)
         let container = try ModelContainer(
             for: ParentProfile.self,
             ChildProfile.self,
@@ -136,7 +136,7 @@ struct ParentProfilePersistenceTests {
 
     @Test("A device is linked to its child and persists")
     func storesDeviceForChild() throws {
-        let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
+        let configuration = ModelConfiguration(isStoredInMemoryOnly: true, groupContainer: .none, cloudKitDatabase: .none)
         let container = try ModelContainer(
             for: ParentProfile.self,
             ChildProfile.self,
@@ -172,7 +172,7 @@ struct ParentProfilePersistenceTests {
 
     @Test("A shared device is available to every child and persists without a child owner")
     func storesSharedDevice() throws {
-        let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
+        let configuration = ModelConfiguration(isStoredInMemoryOnly: true, groupContainer: .none, cloudKitDatabase: .none)
         let container = try ModelContainer(
             for: ParentProfile.self,
             ChildProfile.self,
@@ -217,7 +217,7 @@ struct ParentProfilePersistenceTests {
 
     @Test("A usage session can be stored, edited, and deleted")
     func managesUsageSessionPersistence() throws {
-        let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
+        let configuration = ModelConfiguration(isStoredInMemoryOnly: true, groupContainer: .none, cloudKitDatabase: .none)
         let container = try ModelContainer(
             for: ParentProfile.self,
             ChildProfile.self,
@@ -529,7 +529,7 @@ struct ParentProfilePersistenceTests {
 
     @Test("A child's profile photo is stored with their profile")
     func storesChildProfilePhoto() throws {
-        let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
+        let configuration = ModelConfiguration(isStoredInMemoryOnly: true, groupContainer: .none, cloudKitDatabase: .none)
         let container = try ModelContainer(
             for: ParentProfile.self,
             ChildProfile.self,

@@ -44,7 +44,7 @@ enum AnalysisCalculator {
         childIDs: Set<UUID>,
         sessions: [UsageSession],
         devices: [Device],
-        calendar: Calendar = .current
+        calendar: Calendar = AppCalendar.day
     ) -> PeriodAnalysis {
         guard let currentFull = calendar.dateInterval(of: period.calendarComponent, for: now),
               let previousReference = calendar.date(byAdding: .second, value: -1, to: currentFull.start),
@@ -55,7 +55,10 @@ enum AnalysisCalculator {
         let todayStart = calendar.startOfDay(for: now)
         let elapsedDayCount = max((calendar.dateComponents([.day], from: currentFull.start, to: todayStart).day ?? 0) + 1, 1)
         let currentEnd = min(calendar.date(byAdding: .day, value: 1, to: todayStart) ?? currentFull.end, currentFull.end)
-        let previousEnd = min(calendar.date(byAdding: .day, value: elapsedDayCount, to: previousFull.start) ?? previousFull.end, previousFull.end)
+        // Compare like with like: the previous period up to the same point in time
+        // (e.g. last Monday until 8 AM, not all of last Monday).
+        let elapsedSoFar = max(min(now, currentEnd).timeIntervalSince(currentFull.start), 0)
+        let previousEnd = min(previousFull.start.addingTimeInterval(elapsedSoFar), previousFull.end)
         let currentInterval = DateInterval(start: currentFull.start, end: currentEnd)
         let previousInterval = DateInterval(start: previousFull.start, end: previousEnd)
         let currentMinutes = UsageAggregator.totalMinutes(in: currentInterval, childIDs: childIDs, sessions: sessions)

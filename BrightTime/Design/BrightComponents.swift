@@ -331,6 +331,17 @@ enum TimeText {
         return "\(hours)h \(remainder)m"
     }
 
+    /// "1 hour 20 minutes" — for Siri and VoiceOver.
+    static func spoken(_ minutes: Int) -> String {
+        let hours = minutes / 60
+        let remainder = minutes % 60
+        let hourText = hours == 1 ? "1 hour" : "\(hours) hours"
+        let minuteText = remainder == 1 ? "1 minute" : "\(remainder) minutes"
+        if hours == 0 { return minuteText }
+        if remainder == 0 { return hourText }
+        return "\(hourText) \(minuteText)"
+    }
+
     /// "+12%" / "−8%" style comparison text, or nil when there's nothing to compare.
     static func change(_ percent: Int?) -> String? {
         guard let percent else { return nil }

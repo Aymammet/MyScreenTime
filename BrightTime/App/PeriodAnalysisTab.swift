@@ -14,8 +14,9 @@ struct PeriodAnalysisTab: View {
     @State private var offset = 0
     @State private var selectedDay: Date?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @AppStorage(AppCalendar.Keys.revision) private var calendarRevision = 0
 
-    private var calendar: Calendar { .current }
+    private var calendar: Calendar { AppCalendar.day }
 
     // MARK: - Period math
 
@@ -90,6 +91,7 @@ struct PeriodAnalysisTab: View {
     // MARK: - Body
 
     var body: some View {
+        let _ = calendarRevision
         let analysis = makeAnalysis()
         let days = makeDays(from: analysis)
 
@@ -387,7 +389,7 @@ struct PeriodAnalysisTab: View {
                 .overlay {
                     Text("\(dayNumber)")
                         .font(.system(size: 10, weight: .bold, design: .rounded))
-                        .foregroundStyle(level >= 3 ? Color.white : AppTheme.textSecondary)
+                        .foregroundStyle(level >= 4 ? Color.white : (level == 3 ? AppTheme.primaryDeep : AppTheme.textSecondary))
                 }
                 .overlay {
                     if isOver {
@@ -426,7 +428,7 @@ struct PeriodAnalysisTab: View {
         case 0: AppTheme.surfaceMuted
         case 1: AppTheme.primaryTint
         case 2: AppTheme.primarySoft
-        case 3: Color(hex: 0x5FB0A9)
+        case 3: AppTheme.heatMid
         default: AppTheme.primary
         }
     }
