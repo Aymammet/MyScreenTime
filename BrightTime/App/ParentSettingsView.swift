@@ -65,6 +65,7 @@ struct ParentSettingsView: View {
                 childrenSection
                 accountSection
             }
+            .contentMargins(.bottom, AppTheme.tabBarContentClearance, for: .scrollContent)
             .scrollContentBackground(.hidden)
             .background(AppTheme.background.ignoresSafeArea())
             .navigationTitle("Profile")

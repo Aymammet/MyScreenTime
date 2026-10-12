@@ -45,7 +45,7 @@ struct ChildrenTab: View {
             }
             .padding(.horizontal, 16)
             .padding(.top, 4)
-            .padding(.bottom, 24)
+            .padding(.bottom, AppTheme.tabBarContentClearance)
             .animation(AppTheme.motion(reduceMotion: reduceMotion), value: selectedChild?.id)
         }
         .sensoryFeedback(.selection, trigger: selectedChildID)

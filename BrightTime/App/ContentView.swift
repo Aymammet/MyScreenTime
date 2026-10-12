@@ -109,7 +109,7 @@ struct ContentView: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
-                .padding(.bottom, 24)
+                .padding(.bottom, AppTheme.tabBarContentClearance)
                 .animation(AppTheme.motion(reduceMotion: reduceMotion), value: activeChildren.map(\.id))
                 .animation(AppTheme.motion(reduceMotion: reduceMotion), value: archivedChildren.map(\.id))
             }
