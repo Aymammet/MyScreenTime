@@ -125,7 +125,7 @@ struct PeriodAnalysisTab: View {
             }
             .padding(.horizontal, 16)
             .padding(.top, 4)
-            .padding(.bottom, 24)
+            .padding(.bottom, AppTheme.tabBarContentClearance)
         }
         .sensoryFeedback(.selection, trigger: offset)
     }

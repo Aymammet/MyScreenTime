@@ -83,6 +83,11 @@ enum AppTheme {
 
     static let cardRadius: CGFloat = 20
 
+    /// Extra room at the end of each root tab's scrolling content. The custom
+    /// floating tab bar is taller than a system tab bar, so this keeps the last
+    /// card or form row completely visible above it on every screen size.
+    static let tabBarContentClearance: CGFloat = 80
+
     /// The one spring used for tab switches, period steppers and expanding cards.
     static var spring: Animation { .spring(response: 0.35, dampingFraction: 0.85) }
 
