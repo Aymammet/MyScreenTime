@@ -152,7 +152,7 @@ struct CardTitle: View {
     }
 }
 
-/// Section label that sits between cards ("Your children").
+/// Section label that sits between cards ("Your kids").
 struct SectionLabel<Trailing: View>: View {
     let title: String
     private let trailing: Trailing

@@ -3,20 +3,20 @@ import SwiftUI
 
 enum AnalysisDestination: String, CaseIterable, Identifiable {
     case home = "Home"
-    case weekly = "Weekly"
-    case monthly = "Monthly"
+    case insights = "Insights"
+    case children = "Kids"
     case devices = "Devices"
-    case children = "Children"
+    case profile = "Profile"
 
     var id: String { rawValue }
 
     var systemImage: String {
         switch self {
         case .home: "house.fill"
-        case .weekly: "chart.bar.fill"
-        case .monthly: "calendar"
-        case .devices: "ipad.and.iphone"
+        case .insights: "chart.bar.fill"
         case .children: "person.2.fill"
+        case .devices: "ipad.and.iphone"
+        case .profile: "person.crop.circle.fill"
         }
     }
 }
@@ -45,15 +45,41 @@ struct AnalysisView: View {
     @ViewBuilder
     private var content: some View {
         switch destination {
-        case .home, .weekly:
-            PeriodAnalysisTab(period: .week, children: activeChildren, devices: devices, sessions: sessions)
-        case .monthly:
-            PeriodAnalysisTab(period: .month, children: activeChildren, devices: devices, sessions: sessions)
+        case .home, .insights, .profile:
+            InsightsTab(children: activeChildren, devices: devices, sessions: sessions)
         case .devices:
             DevicesTab(children: activeChildren, devices: devices, sessions: sessions)
         case .children:
             ChildrenTab(children: activeChildren, devices: devices, sessions: sessions)
         }
+    }
+}
+
+/// Week and month in one tab. The Week / Month switch stays pinned above the
+/// scrolling content, like the Screen Time screen in iPhone Settings.
+struct InsightsTab: View {
+    let children: [ChildProfile]
+    let devices: [Device]
+    let sessions: [UsageSession]
+
+    @AppStorage("brighttime.insights.period") private var period: AnalysisPeriod = .week
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Picker("Period", selection: $period) {
+                ForEach(AnalysisPeriod.allCases) { option in
+                    Text(option.rawValue).tag(option)
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 8)
+            .accessibilityIdentifier("insights-period-picker")
+
+            PeriodAnalysisTab(period: period, children: children, devices: devices, sessions: sessions)
+                .id(period)
+        }
+        .sensoryFeedback(.selection, trigger: period)
     }
 }
 
@@ -112,7 +138,7 @@ struct DailyInsightsCard: View {
                 .accessibilityIdentifier("daily-insights-unavailable")
             }
 
-            Text("News and statistics describe their stated region and publication date; they are not measurements of your children.")
+            Text("News and statistics describe their stated region and publication date; they are not measurements of your kids.")
                 .font(.caption2)
                 .foregroundStyle(AppTheme.textTertiary)
         }

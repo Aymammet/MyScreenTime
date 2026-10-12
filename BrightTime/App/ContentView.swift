@@ -11,9 +11,7 @@ struct ContentView: View {
     @Query private var allDevices: [Device]
 
     let parent: ParentProfile
-    var onSignOut: () -> Void = {}
 
-    @State private var isShowingSettings = false
     @State private var isAddingChild = false
     @State private var childToEdit: ChildProfile?
     @State private var childToArchive: ChildProfile?
@@ -77,7 +75,7 @@ struct ContentView: View {
 
                     hourlyCard
 
-                    SectionLabel("Your children") {
+                    SectionLabel("Your kids") {
                         if !activeChildren.isEmpty {
                             Button {
                                 isAddingChild = true
@@ -119,9 +117,6 @@ struct ContentView: View {
             .navigationTitle("BrightTime")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(.hidden, for: .navigationBar)
-            .sheet(isPresented: $isShowingSettings) {
-                ParentSettingsView(parent: parent, onSignOut: onSignOut)
-            }
             .sheet(isPresented: $isAddingChild) {
                 ChildFormView(parent: parent)
             }
@@ -205,14 +200,6 @@ struct ContentView: View {
             }
 
             Spacer(minLength: 0)
-
-            Button {
-                isShowingSettings = true
-            } label: {
-                ParentAvatarView(parent: parent, size: 44)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Settings")
         }
     }
 
@@ -408,7 +395,7 @@ struct ContentView: View {
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundStyle(AppTheme.primary)
             }
-            Text("No children yet")
+            Text("No kids yet")
                 .font(.headline)
                 .foregroundStyle(AppTheme.primaryDeep)
             Text("Add a child profile to start tracking healthy screen-time habits.")

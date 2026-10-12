@@ -68,7 +68,7 @@ struct ChildrenTab: View {
                 .foregroundStyle(AppTheme.primary)
                 .frame(width: 64, height: 64)
                 .background(AppTheme.primaryTint, in: Circle())
-            Text("No children to show")
+            Text("No kids to show")
                 .font(.headline)
                 .foregroundStyle(AppTheme.primaryDeep)
             Text("Add a child on the Home tab to see their limits, trends and devices here.")

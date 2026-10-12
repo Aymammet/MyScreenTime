@@ -164,7 +164,13 @@ private struct FamilyShellView: View {
 
             Group {
                 if destination == .home {
-                    ContentView(parent: parent, onSignOut: onSignOut)
+                    ContentView(parent: parent)
+                } else if destination == .profile {
+                    ParentSettingsView(parent: parent) {
+                        // After signing back in, start from Home.
+                        destination = .home
+                        onSignOut()
+                    }
                 } else {
                     NavigationStack {
                         AnalysisView(

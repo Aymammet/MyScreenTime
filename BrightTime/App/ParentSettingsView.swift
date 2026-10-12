@@ -27,8 +27,10 @@ enum AppAppearance: String, CaseIterable, Identifiable {
     }
 }
 
+/// The Profile tab: the parent's profile, family features, preferences, security
+/// and account. Every change applies right away; only the name and photo have an
+/// edit screen with its own Save.
 struct ParentSettingsView: View {
-    @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Environment(AppLock.self) private var lock
     @Environment(FamilySync.self) private var familySync
@@ -40,11 +42,6 @@ struct ParentSettingsView: View {
     @AppStorage(AppAppearance.storageKey) private var appearance: AppAppearance = .system
     @AppStorage(AppCalendar.Keys.revision) private var calendarRevision = 0
 
-    @State private var name: String
-    @State private var notificationsEnabled: Bool
-    @State private var selectedAvatar: DefaultProfileAvatar
-    @State private var selectedPhoto: PhotosPickerItem?
-    @State private var photoData: Data?
     @State private var isConfirmingSignOut = false
     @State private var passcodeFlow: PasscodeSetupView.Mode?
     @State private var lockAfterPasscodeCreated = false
@@ -52,14 +49,6 @@ struct ParentSettingsView: View {
     init(parent: ParentProfile, onSignOut: @escaping () -> Void = {}) {
         self.parent = parent
         self.onSignOut = onSignOut
-        _name = State(initialValue: parent.name)
-        _notificationsEnabled = State(initialValue: parent.notificationsEnabled)
-        _selectedAvatar = State(initialValue: parent.resolvedDefaultAvatar)
-        _photoData = State(initialValue: parent.profilePhotoData)
-    }
-
-    private var isNameValid: Bool {
-        ParentProfile.isValidName(name)
     }
 
     private var children: [ChildProfile] {
@@ -70,22 +59,17 @@ struct ParentSettingsView: View {
         NavigationStack {
             Form {
                 profileSection
-                preferencesSection
                 familySection
+                preferencesSection
                 securitySection
                 childrenSection
                 accountSection
             }
             .scrollContentBackground(.hidden)
             .background(AppTheme.background.ignoresSafeArea())
-            .navigationTitle("Settings")
-            .navigationBarTitleDisplayMode(.inline)
-            .onChange(of: selectedPhoto) { _, item in
-                Task {
-                    guard let data = try? await item?.loadTransferable(type: Data.self) else { return }
-                    photoData = resizedPhotoData(data)
-                }
-            }
+            .navigationTitle("Profile")
+            .navigationBarTitleDisplayMode(.large)
+            .toolbarBackground(AppTheme.background, for: .navigationBar)
             .sheet(isPresented: $isConfirmingSignOut) {
                 SignOutSheet {
                     signOut()
@@ -111,76 +95,38 @@ struct ParentSettingsView: View {
                     }
                 }
             }
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                }
-
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        saveChanges()
-                    }
-                    .fontWeight(.semibold)
-                    .disabled(!isNameValid)
-                }
-            }
         }
+        .tint(AppTheme.primary)
     }
 
     // MARK: - Sections
 
     private var profileSection: some View {
         Section {
-            HStack(spacing: 14) {
-                profileAvatar
-
-                VStack(alignment: .leading, spacing: 8) {
-                    PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                        Label("Choose profile photo", systemImage: "photo")
-                            .font(.subheadline.weight(.semibold))
-                    }
-                    .accessibilityIdentifier("settings-parent-photo-picker")
-
-                    if photoData != nil {
-                        Button("Use a default avatar") {
-                            photoData = nil
-                        }
-                        .font(.footnote)
-                        .foregroundStyle(AppTheme.textSecondary)
+            NavigationLink {
+                EditParentProfileView(parent: parent)
+            } label: {
+                HStack(spacing: 14) {
+                    ParentAvatarView(parent: parent, size: 56)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(parent.name)
+                            .font(.title3.weight(.bold))
+                            .foregroundStyle(AppTheme.primaryDeep)
+                        Text("Edit name & photo")
+                            .font(.footnote)
+                            .foregroundStyle(AppTheme.textSecondary)
                     }
                 }
+                .padding(.vertical, 4)
             }
-            .padding(.vertical, 4)
-
-            TextField("Your name", text: $name)
-                .textContentType(.name)
-                .textInputAutocapitalization(.words)
-                .onChange(of: name) { _, newValue in
-                    name = String(newValue.prefix(ParentProfile.maximumNameLength))
-                }
-
-            if !name.isEmpty, !isNameValid {
-                Text("Enter a name between 2 and 16 characters.")
-                    .font(.footnote)
-                    .foregroundStyle(AppTheme.dangerText)
-            }
-
-            DefaultAvatarPicker(
-                avatars: DefaultProfileAvatar.allCases,
-                selection: $selectedAvatar
-            )
-            .accessibilityIdentifier("settings-parent-default-avatar-picker")
-        } header: {
-            Text("Parent profile")
+            .accessibilityIdentifier("profile-edit-link")
         }
         .listRowBackground(AppTheme.surface)
     }
 
     private var preferencesSection: some View {
         Section {
-            Toggle(isOn: $notificationsEnabled) {
+            Toggle(isOn: notificationsBinding) {
                 settingLabel("Notifications", systemImage: "bell.fill", tint: AppTheme.primary)
             }
 
@@ -308,7 +254,7 @@ struct ParentSettingsView: View {
     private var childrenSection: some View {
         Section {
             if children.isEmpty {
-                Text("No children added yet")
+                Text("No kids added yet")
                     .foregroundStyle(AppTheme.textSecondary)
             } else {
                 ForEach(children) { child in
@@ -328,7 +274,7 @@ struct ParentSettingsView: View {
                 }
             }
         } header: {
-            Text("Children")
+            Text("Kids")
         }
         .listRowBackground(AppTheme.surface)
     }
@@ -384,7 +330,126 @@ struct ParentSettingsView: View {
         }
     }
 
-    private var profileAvatar: some View {
+    private var notificationsBinding: Binding<Bool> {
+        Binding(
+            get: { parent.notificationsEnabled },
+            set: { newValue in
+                parent.notificationsEnabled = newValue
+                parent.updatedAt = .now
+                try? modelContext.save()
+            }
+        )
+    }
+
+    /// Closes any open sheet first, then locks once it's gone.
+    private func signOut() {
+        isConfirmingSignOut = false
+        passcodeFlow = nil
+        Task {
+            try? await Task.sleep(for: .milliseconds(350))
+            onSignOut()
+        }
+    }
+}
+
+/// Edit the parent's name and photo. Pushed from the Profile tab.
+struct EditParentProfileView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+
+    let parent: ParentProfile
+
+    @State private var name: String
+    @State private var selectedAvatar: DefaultProfileAvatar
+    @State private var selectedPhoto: PhotosPickerItem?
+    @State private var photoData: Data?
+
+    init(parent: ParentProfile) {
+        self.parent = parent
+        _name = State(initialValue: parent.name)
+        _selectedAvatar = State(initialValue: parent.resolvedDefaultAvatar)
+        _photoData = State(initialValue: parent.profilePhotoData)
+    }
+
+    private var isNameValid: Bool {
+        ParentProfile.isValidName(name)
+    }
+
+    var body: some View {
+        Form {
+            Section {
+                HStack(spacing: 14) {
+                    avatar
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                            Label("Choose profile photo", systemImage: "photo")
+                                .font(.subheadline.weight(.semibold))
+                        }
+                        .accessibilityIdentifier("settings-parent-photo-picker")
+
+                        if photoData != nil {
+                            Button("Use a default avatar") {
+                                photoData = nil
+                            }
+                            .font(.footnote)
+                            .foregroundStyle(AppTheme.textSecondary)
+                        }
+                    }
+                }
+                .padding(.vertical, 4)
+
+                TextField("Your name", text: $name)
+                    .textContentType(.name)
+                    .textInputAutocapitalization(.words)
+                    .onChange(of: name) { _, newValue in
+                        name = String(newValue.prefix(ParentProfile.maximumNameLength))
+                    }
+
+                if !name.isEmpty, !isNameValid {
+                    Text("Enter a name between 2 and 16 characters.")
+                        .font(.footnote)
+                        .foregroundStyle(AppTheme.dangerText)
+                }
+            } header: {
+                Text("Name & photo")
+            }
+            .listRowBackground(AppTheme.surface)
+
+            Section {
+                DefaultAvatarPicker(
+                    avatars: DefaultProfileAvatar.allCases,
+                    selection: $selectedAvatar
+                )
+                .accessibilityIdentifier("settings-parent-default-avatar-picker")
+            } header: {
+                Text("Avatar")
+            }
+            .listRowBackground(AppTheme.surface)
+        }
+        .scrollContentBackground(.hidden)
+        .background(AppTheme.background.ignoresSafeArea())
+        .navigationTitle("Edit Profile")
+        .navigationBarTitleDisplayMode(.inline)
+        .onChange(of: selectedPhoto) { _, item in
+            Task {
+                guard let data = try? await item?.loadTransferable(type: Data.self) else { return }
+                photoData = resizedPhotoData(data)
+            }
+        }
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Save") {
+                    save()
+                }
+                .fontWeight(.semibold)
+                .disabled(!isNameValid)
+                .accessibilityIdentifier("save-parent-settings")
+            }
+        }
+    }
+
+    private var avatar: some View {
         Group {
             if let photoData, let image = UIImage(data: photoData) {
                 Image(uiImage: image).resizable().scaledToFill()
@@ -407,23 +472,14 @@ struct ParentSettingsView: View {
         }
     }
 
-    /// Closes Settings first, then locks once the sheet is gone.
-    private func signOut() {
-        dismiss()
-        Task {
-            try? await Task.sleep(for: .milliseconds(350))
-            onSignOut()
-        }
-    }
-
-    private func saveChanges() {
+    private func save() {
         parent.name = ParentProfile.normalizedName(name)
         parent.defaultAvatar = selectedAvatar
         parent.profilePhotoData = photoData
-        parent.notificationsEnabled = notificationsEnabled
         parent.timeZoneIdentifier = AppCalendar.effectiveTimeZone.identifier
         parent.updatedAt = .now
         try? modelContext.save()
         dismiss()
     }
 }
+

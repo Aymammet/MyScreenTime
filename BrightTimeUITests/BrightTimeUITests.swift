@@ -23,7 +23,7 @@ final class BrightTimeUITests: XCTestCase {
         XCTAssertTrue(greeting.waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["analysis-home-tab"].exists)
 
-        for tab in ["weekly", "monthly", "devices", "children"] {
+        for tab in ["insights", "kids", "devices"] {
             app.buttons["analysis-\(tab)-tab"].tap()
             XCTAssertTrue(app.navigationBars[tab.capitalized].waitForExistence(timeout: 5))
             app.swipeUp()
