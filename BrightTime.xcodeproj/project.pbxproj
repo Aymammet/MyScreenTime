@@ -59,6 +59,11 @@
 		A10000000000000000000032 /* BrightTimeWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000034 /* BrightTimeWidgets.swift */; };
 		A10000000000000000000033 /* ScreenTimerLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000035 /* ScreenTimerLiveActivity.swift */; };
 		A10000000000000000000034 /* BrightTimeWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = B1000000000000000000003A /* BrightTimeWidgetsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		A10000000000000000000035 /* KidModeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000003B /* KidModeView.swift */; };
+		A10000000000000000000036 /* WeeklyRecapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000003C /* WeeklyRecapView.swift */; };
+		A10000000000000000000037 /* KidRequests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000003D /* KidRequests.swift */; };
+		A10000000000000000000038 /* AppNotifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000003E /* AppNotifications.swift */; };
+		A10000000000000000000039 /* WeeklyRecap.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000003F /* WeeklyRecap.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -158,6 +163,11 @@
 		B10000000000000000000038 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B10000000000000000000039 /* BrightTime.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BrightTime.entitlements; sourceTree = "<group>"; };
 		B1000000000000000000003A /* BrightTimeWidgetsExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = BrightTimeWidgetsExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		B1000000000000000000003B /* KidModeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KidModeView.swift; sourceTree = "<group>"; };
+		B1000000000000000000003C /* WeeklyRecapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyRecapView.swift; sourceTree = "<group>"; };
+		B1000000000000000000003D /* KidRequests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KidRequests.swift; sourceTree = "<group>"; };
+		B1000000000000000000003E /* AppNotifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppNotifications.swift; sourceTree = "<group>"; };
+		B1000000000000000000003F /* WeeklyRecap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyRecap.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -241,6 +251,8 @@
 				B10000000000000000000024 /* PeriodAnalysisTab.swift */,
 				B10000000000000000000031 /* TimeBankViews.swift */,
 				B10000000000000000000032 /* FamilySharingView.swift */,
+				B1000000000000000000003B /* KidModeView.swift */,
+				B1000000000000000000003C /* WeeklyRecapView.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -285,6 +297,9 @@
 				B1000000000000000000002E /* LiveActivityController.swift */,
 				B1000000000000000000002F /* WidgetSnapshotWriter.swift */,
 				B10000000000000000000030 /* FamilySync.swift */,
+				B1000000000000000000003D /* KidRequests.swift */,
+				B1000000000000000000003E /* AppNotifications.swift */,
+				B1000000000000000000003F /* WeeklyRecap.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -546,6 +561,11 @@
 				A1000000000000000000002D /* FamilySync.swift in Sources */,
 				A1000000000000000000002E /* TimeBankViews.swift in Sources */,
 				A1000000000000000000002F /* FamilySharingView.swift in Sources */,
+				A10000000000000000000035 /* KidModeView.swift in Sources */,
+				A10000000000000000000036 /* WeeklyRecapView.swift in Sources */,
+				A10000000000000000000037 /* KidRequests.swift in Sources */,
+				A10000000000000000000038 /* AppNotifications.swift in Sources */,
+				A10000000000000000000039 /* WeeklyRecap.swift in Sources */,
 				A10000000000000000000030 /* WidgetShared.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

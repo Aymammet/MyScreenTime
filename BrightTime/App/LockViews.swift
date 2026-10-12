@@ -697,6 +697,7 @@ struct ResetBrightTimeView: View {
     private func eraseEverything() {
         // Disconnect first, so erasing this iPhone never deletes the shared family.
         FamilySync.shared.disconnectForReset()
+        wipe(TimeRequest.self)
         wipe(TimeCredit.self)
         wipe(EarnActivity.self)
         wipe(UsageSession.self)
@@ -709,6 +710,7 @@ struct ResetBrightTimeView: View {
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
         lock.eraseAll()
         UserDefaults.standard.removeObject(forKey: "brighttime.bank.seeded")
+        UserDefaults.standard.removeObject(forKey: KidMode.storageKey)
         dismiss()
     }
 

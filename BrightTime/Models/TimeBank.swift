@@ -121,3 +121,49 @@ extension ChildProfile {
             .reduce(0) { $0 + $1.minutes }
     }
 }
+
+/// A kid asking for extra time today ("+15 min?"). A parent approves or declines
+/// it on this device or, with co-parent sync, from their own iPhone.
+@Model
+final class TimeRequest {
+    enum Status: String, Codable {
+        case pending, approved, denied
+    }
+
+    var id: UUID = UUID()
+    /// Stored as an ID rather than a relationship, so a request can arrive
+    /// through sync before its child does.
+    var childID: UUID = UUID()
+    var minutes: Int = 15
+    var statusRawValue: String = Status.pending.rawValue
+    /// The day the extra time is for.
+    var day: Date = Date.now
+    var createdAt: Date = Date.now
+    var decidedAt: Date?
+    var updatedAt: Date = Date.now
+
+    var status: Status {
+        get { Status(rawValue: statusRawValue) ?? .pending }
+        set { statusRawValue = newValue.rawValue }
+    }
+
+    init(
+        id: UUID = UUID(),
+        childID: UUID,
+        minutes: Int,
+        status: Status = .pending,
+        day: Date = .now,
+        createdAt: Date = .now,
+        decidedAt: Date? = nil,
+        updatedAt: Date = .now
+    ) {
+        self.id = id
+        self.childID = childID
+        self.minutes = minutes
+        self.statusRawValue = status.rawValue
+        self.day = day
+        self.createdAt = createdAt
+        self.decidedAt = decidedAt
+        self.updatedAt = updatedAt
+    }
+}

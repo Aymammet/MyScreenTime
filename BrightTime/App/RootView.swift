@@ -15,6 +15,16 @@ struct RootView: View {
     @EnvironmentObject private var timerManager: ScreenTimerManager
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage(AppAppearance.storageKey) private var appearance: AppAppearance = .system
+    @AppStorage(KidMode.storageKey) private var kidModeChildID = ""
+
+    @State private var isShowingRecap = false
+    @State private var isShowingRequests = false
+
+    /// The kid this device is handed to, while kid mode is on.
+    private var kidModeChild: ChildProfile? {
+        guard !kidModeChildID.isEmpty else { return nil }
+        return allChildren.first { $0.id.uuidString == kidModeChildID && $0.isActive }
+    }
 
     /// Hides the app while it's in the app switcher, so the dashboard never shows
     /// before the lock screen does.
@@ -28,10 +38,16 @@ struct RootView: View {
                 FamilyShellView(parent: parent) {
                     lock.lock(reason: .manual)
                 }
-                .allowsHitTesting(!lock.isLocked)
-                .accessibilityHidden(lock.isLocked)
+                .allowsHitTesting(!lock.isLocked && kidModeChild == nil)
+                .accessibilityHidden(lock.isLocked || kidModeChild != nil)
 
-                if lock.isLocked {
+                if let kid = kidModeChild {
+                    // Kid mode replaces the lock screen: the kid only ever sees
+                    // their own screen, and leaving it needs the parent.
+                    KidModeView(child: kid)
+                        .transition(.opacity)
+                        .zIndex(1)
+                } else if lock.isLocked {
                     LockScreenView(parent: parent)
                         .transition(.opacity)
                         .zIndex(1)
@@ -40,12 +56,22 @@ struct RootView: View {
                 ParentSetupView()
             }
 
-            if isObscured && !lock.isLocked && lock.hasPasscode {
+            if isObscured && !lock.isLocked && lock.hasPasscode && kidModeChild == nil {
                 PrivacyCover()
                     .zIndex(2)
             }
         }
         .animation(.easeInOut(duration: 0.25), value: lock.isLocked)
+        .animation(.easeInOut(duration: 0.25), value: kidModeChildID)
+        .sheet(isPresented: $isShowingRecap) {
+            WeeklyRecapView()
+        }
+        .sheet(isPresented: $isShowingRequests) {
+            RequestsSheet()
+        }
+        .onChange(of: AppRouter.shared.pending) { _, _ in
+            openPendingRoute()
+        }
         .preferredColorScheme(appearance.colorScheme)
         .overlay {
             // One app-wide place that records finished timers, whichever screen
@@ -66,6 +92,7 @@ struct RootView: View {
                 AppCalendar.apply()
                 completeTimers(now: .now)
                 familySync.sceneBecameActive()
+                scheduleRecap()
             case .background:
                 writeWidgetSnapshot()
                 familySync.sceneWentToBackground()
@@ -75,6 +102,7 @@ struct RootView: View {
         }
         .task {
             familySync.sceneBecameActive()
+            scheduleRecap()
         }
         .onChange(of: widgetSignature, initial: true) { _, _ in
             writeWidgetSnapshot()
@@ -94,11 +122,35 @@ struct RootView: View {
             familySync.adoptOrphans()
         }
         .onChange(of: lock.isLocked) { _, locked in
-            if locked { Self.dismissPresentedScreens() }
+            if locked {
+                Self.dismissPresentedScreens()
+            } else {
+                openPendingRoute()
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange)) { _ in
             AppCalendar.apply()
         }
+    }
+
+    /// Opens the screen a notification tap asked for, once the parent can see it.
+    private func openPendingRoute() {
+        guard let destination = AppRouter.shared.pending,
+              !lock.isLocked, kidModeChild == nil, parentProfiles.first != nil else { return }
+        AppRouter.shared.pending = nil
+        switch destination {
+        case .recap: isShowingRecap = true
+        case .requests: isShowingRequests = true
+        }
+    }
+
+    private func scheduleRecap() {
+        guard let parent = parentProfiles.first else { return }
+        let names = allChildren
+            .filter { $0.isActive && $0.parent?.id == parent.id }
+            .sorted { $0.createdAt < $1.createdAt }
+            .map(\.name)
+        AppNotifications.shared.rescheduleRecap(kidNames: names, notificationsOn: parent.notificationsEnabled)
     }
 
     /// Changes whenever something the widgets show changes.
@@ -130,6 +182,33 @@ struct RootView: View {
         for scene in UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }) {
             for window in scene.windows where window.rootViewController?.presentedViewController != nil {
                 window.rootViewController?.dismiss(animated: false)
+            }
+        }
+    }
+}
+
+/// Opened from a time-request notification.
+private struct RequestsSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 14) {
+                    PendingRequestsCard()
+                    Text("Answered requests disappear from this list.")
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.textSecondary)
+                }
+                .padding(16)
+            }
+            .background(AppTheme.background.ignoresSafeArea())
+            .navigationTitle("Time requests")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
             }
         }
     }

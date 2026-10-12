@@ -14,6 +14,7 @@ final class AppServices {
         UsageSession.self,
         EarnActivity.self,
         TimeCredit.self,
+        TimeRequest.self,
     ]
 
     let modelContainer: ModelContainer

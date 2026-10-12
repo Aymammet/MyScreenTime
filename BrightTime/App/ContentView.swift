@@ -71,6 +71,8 @@ struct ContentView: View {
 
                     TimeZoneNotice()
 
+                    PendingRequestsCard()
+
                     familyHero
 
                     hourlyCard

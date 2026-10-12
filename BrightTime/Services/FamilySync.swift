@@ -1,8 +1,11 @@
 @preconcurrency import CloudKit
 import Foundation
 import Observation
+import os
 import SwiftData
 import UIKit
+
+private let syncLog = Logger(subsystem: "com.karasandlabs.BrightTime", category: "FamilySync")
 
 /// Shares one family between co-parents through iCloud.
 ///
@@ -56,6 +59,12 @@ final class FamilySync {
     @ObservationIgnored private var cloudContainer: CKContainer?
     @ObservationIgnored private var scanLoop: Task<Void, Never>?
     @ObservationIgnored private var sharingDelegate: SharingControllerDelegate?
+    /// Records per upload. Halved when iCloud says a request was too large.
+    @ObservationIgnored private var batchLimit = 50
+    /// True when the current upload round had items iCloud rejected.
+    @ObservationIgnored private var uploadRoundFailed = false
+    /// Requests that are new or changed status in the batch being applied.
+    @ObservationIgnored private var arrivedRequests: [TimeRequest] = []
 
     private init() {}
 
@@ -106,8 +115,9 @@ final class FamilySync {
         do {
             try await engine.fetchChanges()
             try await engine.sendChanges()
-            status = .synced(.now)
+            if case .failed = status {} else { status = .synced(.now) }
         } catch {
+            syncLog.error("Sync failed: \(String(describing: error), privacy: .public)")
             if !quiet { status = .failed(Self.message(for: error)) }
         }
         if role == .owner { await refreshParticipants() }
@@ -121,20 +131,24 @@ final class FamilySync {
         let isFirstInvite = role == .none
         do {
             try await requireAccount()
-            if role == .none {
+            // Make the family's zone and its share straight away, so the invite
+            // never waits on uploading the whole history. The data follows in the
+            // background, and any upload problem shows up on this screen.
+            try await ensureZone()
+            let share = try await fetchOrCreateShare()
+            if isFirstInvite {
                 store = SyncStore()
                 store.role = .owner
                 role = .owner
                 store.save()
                 makeEngine()
-                engine?.state.add(pendingDatabaseChanges: [.saveZone(CKRecordZone(zoneID: zoneID))])
                 scanLocalChanges()
             }
-            try await engine?.sendChanges()
-            let share = try await fetchOrCreateShare()
             status = .synced(.now)
             presentSharingController(for: share)
+            Task { await self.syncNow() }
         } catch {
+            syncLog.error("Invite failed: \(String(describing: error), privacy: .public)")
             // Don't leave a half-set-up share behind if the very first try fails.
             if isFirstInvite { resetLocalState() }
             status = .failed(Self.message(for: error))
@@ -255,6 +269,8 @@ final class FamilySync {
             delegate: self
         )
         engine = CKSyncEngine(configuration)
+        // CKSyncEngine fetches automatically when iCloud pushes a change.
+        UIApplication.shared.registerForRemoteNotifications()
     }
 
     private func resetLocalState() {
@@ -281,6 +297,12 @@ final class FamilySync {
         } catch let error as CKError where error.code == .unknownItem || error.code == .zoneNotFound {
             return nil
         }
+    }
+
+    private func ensureZone() async throws {
+        let zone = CKRecordZone(zoneID: zoneID)
+        let result = try await container.privateCloudDatabase.modifyRecordZones(saving: [zone], deleting: [])
+        _ = try result.saveResults[zone.zoneID]?.get()
     }
 
     private func fetchOrCreateShare() async throws -> CKShare {
@@ -349,6 +371,9 @@ final class FamilySync {
         for activity in (try? context.fetch(FetchDescriptor<EarnActivity>())) ?? [] {
             current[RecordKind.activity.recordName(activity.id)] = Fingerprint.of(activity)
         }
+        for request in (try? context.fetch(FetchDescriptor<TimeRequest>())) ?? [] {
+            current[RecordKind.request.recordName(request.id)] = Fingerprint.of(request)
+        }
 
         var changes: [CKSyncEngine.PendingRecordZoneChange] = []
         for (name, fingerprint) in current where store.manifest[name] != fingerprint {
@@ -377,7 +402,7 @@ final class FamilySync {
         var missing: [CKSyncEngine.PendingRecordZoneChange] = []
 
         for change in pending {
-            guard records.count + deletions.count < 250 else { break }
+            guard records.count + deletions.count < batchLimit else { break }
             switch change {
             case .saveRecord(let recordID):
                 if let record = record(for: recordID) {
@@ -426,6 +451,9 @@ final class FamilySync {
         case .activity:
             guard let activity = fetchOne(EarnActivity.self, id: id, in: context) else { return nil }
             RecordMapper.fill(record, from: activity)
+        case .request:
+            guard let request = fetchOne(TimeRequest.self, id: id, in: context) else { return nil }
+            RecordMapper.fill(record, from: request)
         }
         return record
     }
@@ -453,6 +481,12 @@ final class FamilySync {
         }
         try? context.save()
         store.save()
+
+        let arrived = arrivedRequests
+        arrivedRequests = []
+        for request in arrived {
+            AppNotifications.shared.requestArrivedFromSync(request, context: context)
+        }
     }
 
     /// Returns false when the record points at a child that isn't here yet.
@@ -528,6 +562,20 @@ final class FamilySync {
             }()
             RecordMapper.apply(record, to: activity)
             store.manifest[name] = Fingerprint.of(activity)
+
+        case .request:
+            let existing = fetchOne(TimeRequest.self, id: id, in: context)
+            let previousStatus = existing?.status
+            let request = existing ?? {
+                let created = TimeRequest(id: id, childID: record.uuid("childID") ?? UUID(), minutes: 15)
+                context.insert(created)
+                return created
+            }()
+            RecordMapper.apply(record, to: request)
+            store.manifest[name] = Fingerprint.of(request)
+            if previousStatus != request.status {
+                arrivedRequests.append(request)
+            }
         }
 
         store.systemFields[name] = Self.encodeSystemFields(record)
@@ -551,6 +599,8 @@ final class FamilySync {
             if let model = fetchOne(TimeCredit.self, id: id, in: context) { context.delete(model) }
         case .activity:
             if let model = fetchOne(EarnActivity.self, id: id, in: context) { context.delete(model) }
+        case .request:
+            if let model = fetchOne(TimeRequest.self, id: id, in: context) { context.delete(model) }
         }
     }
 
@@ -599,6 +649,7 @@ final class FamilySync {
 
         case .sentDatabaseChanges(let sent):
             for failure in sent.failedZoneSaves {
+                syncLog.error("Zone save failed: \(String(describing: failure.error), privacy: .public)")
                 status = .failed(Self.message(for: failure.error))
             }
 
@@ -608,6 +659,7 @@ final class FamilySync {
             }
             var retry: [CKSyncEngine.PendingRecordZoneChange] = []
             var needsZone = false
+            var otherFailures: [CKError] = []
             for failure in sent.failedRecordSaves {
                 let recordID = failure.record.recordID
                 switch failure.error.code {
@@ -630,9 +682,24 @@ final class FamilySync {
                     }
                 case .permissionFailure:
                     status = .failed("You can view this family but can't make changes. Ask the parent who invited you to give you edit access.")
-                default:
+                case .limitExceeded:
+                    batchLimit = max(batchLimit / 2, 5)
+                    retry.append(.saveRecord(recordID))
+                case .networkFailure, .networkUnavailable, .zoneBusy, .serviceUnavailable,
+                     .requestRateLimited, .notAuthenticated, .operationCancelled, .batchRequestFailed:
+                    // CKSyncEngine retries these on its own.
                     break
+                default:
+                    otherFailures.append(failure.error)
                 }
+            }
+            for failure in sent.failedRecordSaves {
+                syncLog.error("Save failed for \(failure.record.recordID.recordName, privacy: .public): \(String(describing: failure.error), privacy: .public)")
+            }
+            if let first = otherFailures.first {
+                uploadRoundFailed = true
+                let count = otherFailures.count
+                status = .failed("Couldn't upload \(count) item\(count == 1 ? "" : "s") to iCloud. \(Self.detail(first))")
             }
             if needsZone {
                 engine.state.add(pendingDatabaseChanges: [.saveZone(CKRecordZone(zoneID: zoneID))])
@@ -642,8 +709,14 @@ final class FamilySync {
             }
             store.save()
 
-        case .didFetchChanges, .didSendChanges:
-            if case .working = status {} else { status = .synced(.now) }
+        case .willSendChanges:
+            uploadRoundFailed = false
+
+        case .didFetchChanges:
+            if case .working = status {} else if case .failed = status {} else { status = .synced(.now) }
+
+        case .didSendChanges:
+            if case .working = status {} else if !uploadRoundFailed { status = .synced(.now) }
 
         default:
             break
@@ -666,8 +739,21 @@ final class FamilySync {
         case .badContainer, .missingEntitlement:
             return "iCloud isn't set up for this build of BrightTime yet."
         default:
-            return error.localizedDescription
+            return "Couldn't sync with iCloud. \(detail(error))"
         }
+    }
+
+    /// The error with its CloudKit code and the first underlying reason, so a
+    /// screenshot of the message is enough to tell what went wrong.
+    static func detail(_ error: CKError) -> String {
+        var parts = ["\(error.localizedDescription) (code \(error.code.rawValue))"]
+        if let partial = error.partialErrorsByItemID?.values.first as? CKError {
+            parts.append("\(partial.localizedDescription) (code \(partial.code.rawValue))")
+        }
+        if let underlying = error.userInfo[NSUnderlyingErrorKey] as? NSError {
+            parts.append(underlying.localizedDescription)
+        }
+        return parts.joined(separator: " · ")
     }
 
     private static func displayName(of identity: CKUserIdentity) -> String? {
@@ -824,6 +910,7 @@ private enum RecordKind: String, CaseIterable {
     case session = "Session"
     case credit = "Credit"
     case activity = "Activity"
+    case request = "Request"
 
     /// Parents before the things that point at them.
     var order: Int {
@@ -833,6 +920,7 @@ private enum RecordKind: String, CaseIterable {
         case .device: 2
         case .credit: 3
         case .session: 4
+        case .request: 5
         }
     }
 
@@ -873,6 +961,10 @@ extension EarnActivity: SyncIdentifiable {
     static func matching(_ id: UUID) -> Predicate<EarnActivity> { #Predicate { $0.id == id } }
 }
 
+extension TimeRequest: SyncIdentifiable {
+    static func matching(_ id: UUID) -> Predicate<TimeRequest> { #Predicate { $0.id == id } }
+}
+
 @MainActor
 private enum RecordMapper {
     static func fill(_ record: CKRecord, from child: ChildProfile) {
@@ -883,7 +975,9 @@ private enum RecordMapper {
         record["gender"] = child.genderRawValue
         record["avatar"] = child.defaultAvatarRawValue
         record["color"] = child.colorRawValue
-        record["photo"] = child.profilePhotoData
+        // As a file (CKAsset), not a field: fields are capped at 1 MB per record.
+        record["photo"] = nil
+        record["photoAsset"] = PhotoAssets.asset(for: child.profilePhotoData, name: child.id.uuidString)
         record["isActive"] = child.isActive
         record["createdAt"] = child.createdAt
         record["updatedAt"] = child.updatedAt
@@ -897,7 +991,11 @@ private enum RecordMapper {
         child.genderRawValue = record.string("gender")
         child.defaultAvatarRawValue = record.string("avatar")
         child.colorRawValue = record.string("color")
-        child.profilePhotoData = record["photo"] as? Data
+        if let asset = record["photoAsset"] as? CKAsset, let url = asset.fileURL {
+            child.profilePhotoData = try? Data(contentsOf: url)
+        } else {
+            child.profilePhotoData = record["photo"] as? Data
+        }
         child.isActive = record.bool("isActive") ?? child.isActive
         child.createdAt = record.date("createdAt") ?? child.createdAt
         child.updatedAt = record.date("updatedAt") ?? child.updatedAt
@@ -971,6 +1069,26 @@ private enum RecordMapper {
         record["updatedAt"] = activity.updatedAt
     }
 
+    static func fill(_ record: CKRecord, from request: TimeRequest) {
+        record["childID"] = request.childID.uuidString
+        record["minutes"] = request.minutes
+        record["status"] = request.statusRawValue
+        record["day"] = request.day
+        record["createdAt"] = request.createdAt
+        record["decidedAt"] = request.decidedAt
+        record["updatedAt"] = request.updatedAt
+    }
+
+    static func apply(_ record: CKRecord, to request: TimeRequest) {
+        request.childID = record.uuid("childID") ?? request.childID
+        request.minutes = record.int("minutes") ?? request.minutes
+        request.statusRawValue = record.string("status") ?? request.statusRawValue
+        request.day = record.date("day") ?? request.day
+        request.createdAt = record.date("createdAt") ?? request.createdAt
+        request.decidedAt = record.date("decidedAt")
+        request.updatedAt = record.date("updatedAt") ?? request.updatedAt
+    }
+
     static func apply(_ record: CKRecord, to activity: EarnActivity) {
         activity.name = record.string("name") ?? activity.name
         activity.symbol = record.string("symbol") ?? activity.symbol
@@ -1023,6 +1141,13 @@ private enum Fingerprint {
         ].joined(separator: "|")
     }
 
+    static func of(_ request: TimeRequest) -> String {
+        [
+            request.childID.uuidString, "\(request.minutes)", request.statusRawValue, stamp(request.day),
+            stamp(request.createdAt), request.decidedAt.map(stamp) ?? "", stamp(request.updatedAt),
+        ].joined(separator: "|")
+    }
+
     /// Millisecond precision, matching what CloudKit stores.
     private static func stamp(_ date: Date) -> String {
         String(Int64((date.timeIntervalSince1970 * 1_000).rounded()))
@@ -1037,6 +1162,22 @@ private enum Fingerprint {
             value &*= 0x100000001b3
         }
         return String(value, radix: 16)
+    }
+}
+
+/// Temporary files for photos uploaded as CKAssets.
+private enum PhotoAssets {
+    static func asset(for data: Data?, name: String) -> CKAsset? {
+        guard let data else { return nil }
+        let folder = URL.cachesDirectory.appending(path: "BrightTimeSyncPhotos", directoryHint: .isDirectory)
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let url = folder.appending(path: "\(name).jpg")
+        do {
+            try data.write(to: url, options: .atomic)
+            return CKAsset(fileURL: url)
+        } catch {
+            return nil
+        }
     }
 }
 

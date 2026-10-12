@@ -45,6 +45,7 @@ struct ParentSettingsView: View {
     @State private var isConfirmingSignOut = false
     @State private var passcodeFlow: PasscodeSetupView.Mode?
     @State private var lockAfterPasscodeCreated = false
+    @AppStorage(AppNotifications.recapEnabledKey) private var isRecapEnabled = true
 
     init(parent: ParentProfile, onSignOut: @escaping () -> Void = {}) {
         self.parent = parent
@@ -131,6 +132,13 @@ struct ParentSettingsView: View {
                 settingLabel("Notifications", systemImage: "bell.fill", tint: AppTheme.primary)
             }
 
+            if parent.notificationsEnabled {
+                Toggle(isOn: recapBinding) {
+                    settingLabel("Sunday recap", systemImage: "sparkles", tint: AppTheme.warning)
+                }
+                .accessibilityIdentifier("settings-recap-toggle")
+            }
+
             Picker(selection: $appearance) {
                 ForEach(AppAppearance.allCases) { option in
                     Text(option.title).tag(option)
@@ -178,6 +186,13 @@ struct ParentSettingsView: View {
                 settingLabel("Earn-time activities", systemImage: "star.circle.fill", tint: AppTheme.warning)
             }
             .accessibilityIdentifier("settings-earn-activities-link")
+
+            NavigationLink {
+                KidModeSetupView(parent: parent)
+            } label: {
+                settingLabel("Kid mode", systemImage: "hand.raised.fill", tint: Color(hex: 0x6F8FF0))
+            }
+            .accessibilityIdentifier("settings-kid-mode-link")
         } header: {
             Text("Family")
         }
@@ -338,6 +353,19 @@ struct ParentSettingsView: View {
                 parent.notificationsEnabled = newValue
                 parent.updatedAt = .now
                 try? modelContext.save()
+            }
+        )
+    }
+
+    private var recapBinding: Binding<Bool> {
+        Binding(
+            get: { isRecapEnabled },
+            set: { newValue in
+                isRecapEnabled = newValue
+                Task {
+                    if newValue { await AppNotifications.shared.requestAuthorizationIfNeeded() }
+                    AppNotifications.shared.rescheduleRecap(kidNames: children.filter(\.isActive).map(\.name), notificationsOn: parent.notificationsEnabled)
+                }
             }
         )
     }

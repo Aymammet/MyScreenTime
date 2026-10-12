@@ -10,6 +10,7 @@ struct BrightTimeApp: App {
 
     init() {
         AppCalendar.apply()
+        AppNotifications.shared.configure()
         if !AppServices.shared.isUITesting {
             FamilySync.shared.start(with: AppServices.shared.modelContainer)
         }

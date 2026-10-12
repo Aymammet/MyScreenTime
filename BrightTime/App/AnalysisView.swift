@@ -63,6 +63,7 @@ struct InsightsTab: View {
     let sessions: [UsageSession]
 
     @AppStorage("brighttime.insights.period") private var period: AnalysisPeriod = .week
+    @State private var isShowingRecap = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -80,6 +81,21 @@ struct InsightsTab: View {
                 .id(period)
         }
         .sensoryFeedback(.selection, trigger: period)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    isShowingRecap = true
+                } label: {
+                    Label("Weekly recap", systemImage: "sparkles")
+                        .font(.subheadline.weight(.semibold))
+                        .labelStyle(.titleAndIcon)
+                }
+                .accessibilityIdentifier("insights-recap-button")
+            }
+        }
+        .sheet(isPresented: $isShowingRecap) {
+            WeeklyRecapView()
+        }
     }
 }
 
