@@ -83,10 +83,10 @@ struct InsightsTab: View {
     }
 }
 
-// MARK: - Daily insights
+// MARK: - Parent Brief
 
-/// Reviewed screen-time news and statistics, shown as a card at the bottom of each
-/// analysis tab.
+/// Reviewed screen-time news, research, and guidance. Home can request one compact
+/// story; analysis tabs show the full briefing.
 struct DailyInsightsCard: View {
     private enum LoadState {
         case loading
@@ -95,10 +95,35 @@ struct DailyInsightsCard: View {
     }
 
     @State private var state: LoadState = .loading
+    var maximumItems: Int? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            CardTitle(title: "Daily insights")
+            HStack(spacing: 10) {
+                Image(systemName: "newspaper.fill")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(AppTheme.primary)
+                    .frame(width: 34, height: 34)
+                    .background(AppTheme.primaryTint, in: Circle())
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Parent Brief")
+                        .font(.headline)
+                        .foregroundStyle(AppTheme.primaryDeep)
+                    Text("Research, news & practical guidance")
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.textSecondary)
+                }
+
+                Spacer()
+
+                Label("Reviewed", systemImage: "checkmark.seal.fill")
+                    .font(.caption2.bold())
+                    .foregroundStyle(AppTheme.primary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+                    .background(AppTheme.primaryTint, in: Capsule())
+            }
 
             switch state {
             case .loading:
@@ -118,9 +143,9 @@ struct DailyInsightsCard: View {
                     .accessibilityElement(children: .combine)
                     .accessibilityIdentifier("daily-insights-empty")
                 } else {
-                    ForEach(items) { insight in
+                    ForEach(Array(items.prefix(maximumItems ?? items.count))) { insight in
                         insightRow(insight)
-                        if insight.id != items.last?.id {
+                        if insight.id != Array(items.prefix(maximumItems ?? items.count)).last?.id {
                             Divider()
                         }
                     }
@@ -138,7 +163,9 @@ struct DailyInsightsCard: View {
                 .accessibilityIdentifier("daily-insights-unavailable")
             }
 
-            Text("News and statistics describe their stated region and publication date; they are not measurements of your kids.")
+            Text(maximumItems == nil
+                 ? "Briefs show their source, region, and publication date. They are not measurements of your kids."
+                 : "Find more research and news in Insights.")
                 .font(.caption2)
                 .foregroundStyle(AppTheme.textTertiary)
         }
@@ -156,18 +183,19 @@ struct DailyInsightsCard: View {
 
     private func insightRow(_ insight: DailyInsight) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(insight.kind.rawValue.capitalized)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(AppTheme.primary)
+            Label(insight.kind.title, systemImage: insight.kind.systemImage)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(insight.kind.color)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(insight.kind.color.opacity(0.12), in: Capsule())
             Text(insight.title)
                 .font(.headline)
                 .foregroundStyle(AppTheme.primaryDeep)
             Text(insight.summary)
                 .font(.subheadline)
-            Text("\(insight.sourceName) · \(insight.region)")
-                .font(.caption)
                 .foregroundStyle(AppTheme.textSecondary)
-            Text("Published \(insight.publishedAt.formatted(date: .abbreviated, time: .omitted))")
+            Label(insight.region, systemImage: "globe.americas.fill")
                 .font(.caption)
                 .foregroundStyle(AppTheme.textSecondary)
             if insight.needsReview(at: .now) {
@@ -176,10 +204,47 @@ struct DailyInsightsCard: View {
                     .foregroundStyle(AppTheme.warningText)
             }
             Link(destination: insight.sourceURL) {
-                Label("Read source", systemImage: "arrow.up.right.square")
-                    .font(.subheadline.weight(.semibold))
+                HStack {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(insight.sourceName)
+                            .font(.caption.weight(.bold))
+                        Text(insight.publishedAt.formatted(date: .abbreviated, time: .omitted))
+                            .font(.caption2)
+                    }
+                    Spacer()
+                    Image(systemName: "arrow.up.right")
+                        .font(.caption.bold())
+                }
+                .padding(10)
+                .background(AppTheme.surfaceMuted, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
             .accessibilityHint("Opens the original article in your browser")
+        }
+    }
+}
+
+private extension DailyInsight.Kind {
+    var title: String {
+        switch self {
+        case .statistic: "Research"
+        case .news: "Policy news"
+        case .guidance: "Parent guide"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .statistic: "chart.bar.fill"
+        case .news: "building.columns.fill"
+        case .guidance: "lightbulb.fill"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .statistic: Color(hex: 0x7B61D1)
+        case .news: Color(hex: 0x3B7DD8)
+        case .guidance: AppTheme.warningText
         }
     }
 }

@@ -106,6 +106,9 @@ struct ContentView: View {
                         archivedSection
                             .padding(.top, 8)
                     }
+
+                    DailyInsightsCard(maximumItems: 1)
+                        .padding(.top, 8)
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
@@ -474,16 +477,23 @@ struct ContentView: View {
     private func timerRow(for child: ChildProfile, activeTimer: ActiveScreenTimer?, devices: [Device]) -> some View {
         if let activeTimer {
             HStack(spacing: 8) {
-                Circle()
-                    .fill(AppTheme.primary)
-                    .frame(width: 8, height: 8)
+                HStack(spacing: 8) {
+                    Circle()
+                        .fill(AppTheme.danger)
+                        .frame(width: 8, height: 8)
 
-                TimelineView(.periodic(from: .now, by: 1)) { timeline in
-                    Text("\(activeTimer.deviceName) · \(remainingTime(until: activeTimer.endsAt, now: timeline.date))")
-                        .font(.subheadline.weight(.bold).monospacedDigit())
-                        .foregroundStyle(AppTheme.primary)
-                        .lineLimit(1)
-                        .contentTransition(.numericText(countsDown: true))
+                    TimelineView(.periodic(from: .now, by: 1)) { timeline in
+                        Text("\(activeTimer.deviceName) · \(remainingTime(until: activeTimer.endsAt, now: timeline.date))")
+                            .font(.subheadline.weight(.bold).monospacedDigit())
+                            .foregroundStyle(AppTheme.dangerText)
+                            .lineLimit(1)
+                            .contentTransition(.numericText(countsDown: true))
+                    }
+                }
+                .phaseAnimator(reduceMotion ? [false] : [false, true]) { content, isDimmed in
+                    content.opacity(isDimmed ? 0.35 : 1)
+                } animation: { _ in
+                    .easeInOut(duration: 0.65)
                 }
 
                 Spacer(minLength: 8)
@@ -499,10 +509,10 @@ struct ContentView: View {
                 } label: {
                     Label("Stop", systemImage: "stop.fill")
                         .font(.subheadline.bold())
-                        .foregroundStyle(AppTheme.onPrimary)
+                        .foregroundStyle(AppTheme.onDanger)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 8)
-                        .background(AppTheme.primary, in: Capsule())
+                        .background(AppTheme.danger, in: Capsule())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Stop timer")
