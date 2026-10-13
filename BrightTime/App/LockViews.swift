@@ -698,6 +698,7 @@ struct ResetBrightTimeView: View {
         // Disconnect first, so erasing this iPhone never deletes the shared family.
         FamilySync.shared.disconnectForReset()
         wipe(TimeRequest.self)
+        wipe(PasscodeAlert.self)
         wipe(TimeCredit.self)
         wipe(EarnActivity.self)
         wipe(UsageSession.self)

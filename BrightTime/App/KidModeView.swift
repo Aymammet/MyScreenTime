@@ -459,6 +459,60 @@ struct KidModeSetupView: View {
     }
 }
 
+// MARK: - Wrong passcode alerts on the parent's Home
+
+/// Shown at the top of Home after someone typed the wrong parent passcode
+/// several times, on this device or (with co-parent sharing) another one.
+struct PasscodeAlertsCard: View {
+    @Environment(\.modelContext) private var modelContext
+    @Query(
+        filter: #Predicate<PasscodeAlert> { !$0.acknowledged },
+        sort: \PasscodeAlert.lastAt,
+        order: .reverse
+    ) private var alerts: [PasscodeAlert]
+
+    var body: some View {
+        if !alerts.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                Label("Wrong passcode tries", systemImage: "exclamationmark.lock.fill")
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(AppTheme.dangerText)
+                ForEach(alerts) { alert in
+                    HStack(alignment: .top, spacing: 10) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("\(alert.attempts) wrong tries on \(alert.deviceLabel)")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(AppTheme.primaryDeep)
+                            Text(alert.lastAt.formatted(.relative(presentation: .named)))
+                                .font(.caption)
+                                .foregroundStyle(AppTheme.textSecondary)
+                        }
+                        Spacer(minLength: 0)
+                        Button("Got it") {
+                            withAnimation(AppTheme.spring) {
+                                PasscodeAlerts.acknowledge(alert, context: modelContext)
+                            }
+                        }
+                        .font(.footnote.weight(.bold))
+                        .foregroundStyle(AppTheme.primary)
+                        .accessibilityIdentifier("passcode-alert-dismiss")
+                    }
+                }
+                Text("Nothing was changed: limits and timers stay locked without the passcode. If it wasn't you, consider changing your passcode in Settings.")
+                    .font(.caption)
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .brightCard()
+            .overlay {
+                RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
+                    .stroke(AppTheme.danger.opacity(0.55), lineWidth: 1)
+            }
+            .transition(.opacity.combined(with: .move(edge: .top)))
+        }
+    }
+}
+
 // MARK: - Requests on the parent's Home
 
 /// Shown at the top of Home when a kid is waiting for an answer.

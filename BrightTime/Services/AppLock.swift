@@ -245,6 +245,7 @@ final class AppLock {
         guard PasscodeStore.matches(code) else {
             let failures = defaults.integer(forKey: Keys.failedAttempts) + 1
             defaults.set(failures, forKey: Keys.failedAttempts)
+            PasscodeAlerts.recordFailure(count: failures)
             if failures % Self.maxAttemptsBeforeCooldown == 0 {
                 // 1 minute, then 5, then 15 on further rounds of wrong guesses.
                 let round = failures / Self.maxAttemptsBeforeCooldown
@@ -261,6 +262,7 @@ final class AppLock {
     }
 
     private func resetFailures() {
+        PasscodeAlerts.endRun()
         for key in [Keys.failedAttempts, Keys.cooldownSeconds, Keys.cooldownUptime, Keys.cooldownStart] {
             defaults.removeObject(forKey: key)
         }

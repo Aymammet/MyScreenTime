@@ -15,6 +15,7 @@ final class AppServices {
         EarnActivity.self,
         TimeCredit.self,
         TimeRequest.self,
+        PasscodeAlert.self,
     ]
 
     let modelContainer: ModelContainer

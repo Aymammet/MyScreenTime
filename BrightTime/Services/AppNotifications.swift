@@ -94,6 +94,28 @@ final class AppNotifications: NSObject, UNUserNotificationCenterDelegate {
         }
     }
 
+    /// Another device logged wrong passcode tries: tell this parent.
+    func passcodeAlertArrivedFromSync(_ alert: PasscodeAlert) {
+        guard alert.deviceID != PasscodeAlerts.deviceID, !KidMode.isActive, !alert.acknowledged else { return }
+        // Only recent ones; an old alert syncing in later shouldn't buzz the phone.
+        guard Date.now.timeIntervalSince(alert.lastAt) < 6 * 3600 else { return }
+        let time = alert.lastAt.formatted(date: .omitted, time: .shortened)
+        post(
+            id: "passcode-\(alert.id.uuidString)",
+            title: "Wrong passcode on \(alert.deviceLabel)",
+            body: "Someone entered the wrong BrightTime passcode \(alert.attempts) times (last at \(time)). Limits and timers stay locked.",
+            category: nil,
+            userInfo: [:]
+        )
+    }
+
+    func removePasscodeNotification(for id: UUID) {
+        let identifier = "passcode-\(id.uuidString)"
+        let center = UNUserNotificationCenter.current()
+        center.removePendingNotificationRequests(withIdentifiers: [identifier])
+        center.removeDeliveredNotifications(withIdentifiers: [identifier])
+    }
+
     func removeRequestNotification(for id: UUID) {
         let identifier = "request-\(id.uuidString)"
         let center = UNUserNotificationCenter.current()

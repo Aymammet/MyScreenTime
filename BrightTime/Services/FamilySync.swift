@@ -65,6 +65,8 @@ final class FamilySync {
     @ObservationIgnored private var uploadRoundFailed = false
     /// Requests that are new or changed status in the batch being applied.
     @ObservationIgnored private var arrivedRequests: [TimeRequest] = []
+    /// Wrong-passcode alerts that are new or have more tries in this batch.
+    @ObservationIgnored private var arrivedAlerts: [PasscodeAlert] = []
 
     private init() {}
 
@@ -374,6 +376,9 @@ final class FamilySync {
         for request in (try? context.fetch(FetchDescriptor<TimeRequest>())) ?? [] {
             current[RecordKind.request.recordName(request.id)] = Fingerprint.of(request)
         }
+        for alert in (try? context.fetch(FetchDescriptor<PasscodeAlert>())) ?? [] {
+            current[RecordKind.alert.recordName(alert.id)] = Fingerprint.of(alert)
+        }
 
         var changes: [CKSyncEngine.PendingRecordZoneChange] = []
         for (name, fingerprint) in current where store.manifest[name] != fingerprint {
@@ -454,6 +459,9 @@ final class FamilySync {
         case .request:
             guard let request = fetchOne(TimeRequest.self, id: id, in: context) else { return nil }
             RecordMapper.fill(record, from: request)
+        case .alert:
+            guard let alert = fetchOne(PasscodeAlert.self, id: id, in: context) else { return nil }
+            RecordMapper.fill(record, from: alert)
         }
         return record
     }
@@ -486,6 +494,11 @@ final class FamilySync {
         arrivedRequests = []
         for request in arrived {
             AppNotifications.shared.requestArrivedFromSync(request, context: context)
+        }
+        let alerts = arrivedAlerts
+        arrivedAlerts = []
+        for alert in alerts {
+            AppNotifications.shared.passcodeAlertArrivedFromSync(alert)
         }
     }
 
@@ -576,6 +589,20 @@ final class FamilySync {
             if previousStatus != request.status {
                 arrivedRequests.append(request)
             }
+
+        case .alert:
+            let existing = fetchOne(PasscodeAlert.self, id: id, in: context)
+            let previousAttempts = existing?.attempts ?? 0
+            let alert = existing ?? {
+                let created = PasscodeAlert(attempts: 0, deviceLabel: "", deviceID: "")
+                context.insert(created)
+                return created
+            }()
+            RecordMapper.apply(record, to: alert)
+            store.manifest[name] = Fingerprint.of(alert)
+            if alert.attempts > previousAttempts, !alert.acknowledged {
+                arrivedAlerts.append(alert)
+            }
         }
 
         store.systemFields[name] = Self.encodeSystemFields(record)
@@ -601,6 +628,8 @@ final class FamilySync {
             if let model = fetchOne(EarnActivity.self, id: id, in: context) { context.delete(model) }
         case .request:
             if let model = fetchOne(TimeRequest.self, id: id, in: context) { context.delete(model) }
+        case .alert:
+            if let model = fetchOne(PasscodeAlert.self, id: id, in: context) { context.delete(model) }
         }
     }
 
@@ -911,6 +940,7 @@ private enum RecordKind: String, CaseIterable {
     case credit = "Credit"
     case activity = "Activity"
     case request = "Request"
+    case alert = "PasscodeAlert"
 
     /// Parents before the things that point at them.
     var order: Int {
@@ -921,6 +951,7 @@ private enum RecordKind: String, CaseIterable {
         case .credit: 3
         case .session: 4
         case .request: 5
+        case .alert: 6
         }
     }
 
@@ -963,6 +994,10 @@ extension EarnActivity: SyncIdentifiable {
 
 extension TimeRequest: SyncIdentifiable {
     static func matching(_ id: UUID) -> Predicate<TimeRequest> { #Predicate { $0.id == id } }
+}
+
+extension PasscodeAlert: SyncIdentifiable {
+    static func matching(_ id: UUID) -> Predicate<PasscodeAlert> { #Predicate { $0.id == id } }
 }
 
 @MainActor
@@ -1089,6 +1124,26 @@ private enum RecordMapper {
         request.updatedAt = record.date("updatedAt") ?? request.updatedAt
     }
 
+    static func fill(_ record: CKRecord, from alert: PasscodeAlert) {
+        record["attempts"] = alert.attempts
+        record["firstAt"] = alert.firstAt
+        record["lastAt"] = alert.lastAt
+        record["deviceLabel"] = alert.deviceLabel
+        record["deviceID"] = alert.deviceID
+        record["acknowledged"] = alert.acknowledged
+        record["updatedAt"] = alert.updatedAt
+    }
+
+    static func apply(_ record: CKRecord, to alert: PasscodeAlert) {
+        alert.attempts = record.int("attempts") ?? alert.attempts
+        alert.firstAt = record.date("firstAt") ?? alert.firstAt
+        alert.lastAt = record.date("lastAt") ?? alert.lastAt
+        alert.deviceLabel = record.string("deviceLabel") ?? alert.deviceLabel
+        alert.deviceID = record.string("deviceID") ?? alert.deviceID
+        alert.acknowledged = record.bool("acknowledged") ?? alert.acknowledged
+        alert.updatedAt = record.date("updatedAt") ?? alert.updatedAt
+    }
+
     static func apply(_ record: CKRecord, to activity: EarnActivity) {
         activity.name = record.string("name") ?? activity.name
         activity.symbol = record.string("symbol") ?? activity.symbol
@@ -1145,6 +1200,13 @@ private enum Fingerprint {
         [
             request.childID.uuidString, "\(request.minutes)", request.statusRawValue, stamp(request.day),
             stamp(request.createdAt), request.decidedAt.map(stamp) ?? "", stamp(request.updatedAt),
+        ].joined(separator: "|")
+    }
+
+    static func of(_ alert: PasscodeAlert) -> String {
+        [
+            "\(alert.attempts)", stamp(alert.firstAt), stamp(alert.lastAt), alert.deviceLabel,
+            alert.deviceID, "\(alert.acknowledged)", stamp(alert.updatedAt),
         ].joined(separator: "|")
     }
 

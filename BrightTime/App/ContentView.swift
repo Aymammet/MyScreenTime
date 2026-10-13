@@ -5,14 +5,19 @@ import SwiftUI
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.scenePhase) private var scenePhase
     @AppStorage(AppCalendar.Keys.revision) private var calendarRevision = 0
     @Query(sort: \ChildProfile.createdAt) private var allChildren: [ChildProfile]
     @Query private var allUsageSessions: [UsageSession]
     @Query private var allDevices: [Device]
+    @Query(sort: \TimeRequest.createdAt) private var allRequests: [TimeRequest]
 
     let parent: ParentProfile
 
     @State private var isAddingChild = false
+    /// The usage day Home was last drawn for. Bumped by the minute check below so
+    /// the cards roll over to a new day (midnight, or the parent's reset hour).
+    @State private var usageDay = AppCalendar.day.startOfDay(for: .now)
     @State private var childToEdit: ChildProfile?
     @State private var childToArchive: ChildProfile?
     @State private var childForTimer: ChildProfile?
@@ -63,6 +68,7 @@ struct ContentView: View {
 
     var body: some View {
         let _ = calendarRevision
+        let _ = usageDay
         NavigationStack {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 14) {
@@ -70,6 +76,8 @@ struct ContentView: View {
                         .padding(.bottom, 4)
 
                     TimeZoneNotice()
+
+                    PasscodeAlertsCard()
 
                     PendingRequestsCard()
 
@@ -168,6 +176,15 @@ struct ContentView: View {
         }
         .tint(AppTheme.primary)
         .sensoryFeedback(.impact(weight: .medium), trigger: timerManager.timers.map(\.id))
+        .task {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(30))
+                refreshUsageDay()
+            }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { refreshUsageDay() }
+        }
 #if DEBUG
         .task(id: sampleDataSeedID) {
             guard !CommandLine.arguments.contains("-ui-testing") else { return }
@@ -192,27 +209,91 @@ struct ContentView: View {
     // MARK: - Header
 
     private var header: some View {
-        HStack(alignment: .center, spacing: 12) {
+        // Redraws every minute so the greeting, date and status line stay correct
+        // while the app sits open (past 5 PM, past midnight, as timers end).
+        TimelineView(.everyMinute) { context in
+            let now = context.date
+            let partOfDay = HomeGreeting.PartOfDay(hour: AppCalendar.display.component(.hour, from: now))
+            let status = homeStatus(now: now, partOfDay: partOfDay)
+
             VStack(alignment: .leading, spacing: 2) {
-                Text(Date.now.formatted(.dateTime.weekday(.wide).month(.abbreviated).day()))
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(AppTheme.textSecondary)
-                Text(greeting)
+                HStack(spacing: 5) {
+                    Image(systemName: partOfDay.symbol)
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(partOfDay.tint)
+                        .accessibilityHidden(true)
+                    Text(now.formatted(headerDateStyle))
+                }
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(AppTheme.textSecondary)
+
+                Text(greeting(partOfDay))
                     .font(.system(.largeTitle, design: .rounded).weight(.bold))
                     .foregroundStyle(AppTheme.primaryDeep)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
-            }
 
-            Spacer(minLength: 0)
+                HStack(alignment: .firstTextBaseline, spacing: 7) {
+                    Circle()
+                        .fill(status.tone.dotColor)
+                        .frame(width: 7, height: 7)
+                        .alignmentGuide(.firstTextBaseline) { $0.height / 2 + 4 }
+                        .accessibilityHidden(true)
+                    Text(status.text)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(status.tone.textColor)
+                        .lineLimit(2)
+                        .contentTransition(.opacity)
+                }
+                .padding(.top, 4)
+                .animation(AppTheme.motion(reduceMotion: reduceMotion), value: status.text)
+                .accessibilityIdentifier("home-status-line")
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
-    private var greeting: String {
-        let hour = AppCalendar.display.component(.hour, from: .now)
-        let partOfDay = hour < 12 ? "Good morning" : (hour < 17 ? "Good afternoon" : "Good evening")
-        let firstName = parent.name.split(separator: " ").first.map(String.init) ?? ""
-        return firstName.isEmpty ? partOfDay : "\(partOfDay), \(firstName)"
+    private var headerDateStyle: Date.FormatStyle {
+        var style = Date.FormatStyle.dateTime.weekday(.wide).month(.abbreviated).day()
+        style.timeZone = AppCalendar.display.timeZone
+        return style
+    }
+
+    private func greeting(_ partOfDay: HomeGreeting.PartOfDay) -> String {
+        let firstName = HomeGreeting.firstName(parent.name)
+        return firstName.isEmpty ? partOfDay.greeting : "\(partOfDay.greeting), \(firstName)"
+    }
+
+    private func homeStatus(now: Date, partOfDay: HomeGreeting.PartOfDay) -> HomeGreeting.Status {
+        let kids = activeChildren
+        let names = Dictionary(uniqueKeysWithValues: kids.map { ($0.id, HomeGreeting.firstName($0.name)) })
+        let dayCalendar = AppCalendar.day
+
+        let requests = allRequests
+            .filter { $0.status == .pending && dayCalendar.isDate($0.day, inSameDayAs: now) }
+            .compactMap { request in names[request.childID].map { HomeGreeting.Request(name: $0, minutes: request.minutes) } }
+
+        let timers = timerManager.timers
+            .filter { names[$0.childID] != nil && $0.endsAt > now }
+            .map { HomeGreeting.RunningTimer(name: names[$0.childID] ?? $0.childName, endsAt: $0.endsAt) }
+
+        let usage = zip(kids, familySummaries).map { child, summary in
+            HomeGreeting.KidUsage(name: names[child.id] ?? child.name, used: summary.usedMinutes, limit: summary.limitMinutes)
+        }
+
+        return HomeGreeting.status(
+            now: now,
+            partOfDay: partOfDay,
+            hasKids: !kids.isEmpty,
+            requests: requests,
+            timers: timers,
+            usage: usage
+        )
+    }
+
+    private func refreshUsageDay() {
+        let today = AppCalendar.day.startOfDay(for: .now)
+        if today != usageDay { usageDay = today }
     }
 
     // MARK: - Family hero
@@ -654,4 +735,152 @@ private struct HourlyUsage: Identifiable {
             for: [ParentProfile.self, ChildProfile.self, Device.self, UsageSession.self, EarnActivity.self, TimeCredit.self],
             inMemory: true
         )
+}
+
+// MARK: - Home greeting
+
+/// The Home title and the one-line status under it. Pure logic, so it is easy to test.
+enum HomeGreeting {
+    enum PartOfDay: Equatable {
+        case morning, afternoon, evening, night
+
+        /// 5 AM–noon morning, noon–5 PM afternoon, 5–10 PM evening, 10 PM–5 AM night.
+        init(hour: Int) {
+            switch hour {
+            case 5..<12: self = .morning
+            case 12..<17: self = .afternoon
+            case 17..<22: self = .evening
+            default: self = .night
+            }
+        }
+
+        var greeting: String {
+            switch self {
+            case .morning: "Good morning"
+            case .afternoon: "Good afternoon"
+            case .evening: "Good evening"
+            case .night: "Good night"
+            }
+        }
+
+        var symbol: String {
+            switch self {
+            case .morning: "sunrise.fill"
+            case .afternoon: "sun.max.fill"
+            case .evening: "sunset.fill"
+            case .night: "moon.stars.fill"
+            }
+        }
+
+        var tint: Color {
+            switch self {
+            case .morning, .afternoon: Color(red: 0.95, green: 0.72, blue: 0.25)
+            case .evening: Color(red: 0.93, green: 0.55, blue: 0.36)
+            case .night: Color(red: 0.55, green: 0.66, blue: 0.93)
+            }
+        }
+    }
+
+    enum Tone: Equatable {
+        case attention, info, calm
+
+        var dotColor: Color {
+            switch self {
+            case .attention: AppTheme.warning
+            case .info: AppTheme.primary
+            case .calm: AppTheme.textSecondary.opacity(0.6)
+            }
+        }
+
+        var textColor: Color {
+            self == .attention ? AppTheme.warningText : AppTheme.textSecondary
+        }
+    }
+
+    struct Status: Equatable {
+        let text: String
+        let tone: Tone
+    }
+
+    struct Request { let name: String; let minutes: Int }
+    struct RunningTimer { let name: String; let endsAt: Date }
+    struct KidUsage { let name: String; let used: Int; let limit: Int }
+
+    static func firstName(_ fullName: String) -> String {
+        fullName.split(separator: " ").first.map(String.init) ?? ""
+    }
+
+    /// Picks the single most important thing for the parent right now.
+    static func status(
+        now: Date,
+        partOfDay: PartOfDay,
+        hasKids: Bool,
+        requests: [Request],
+        timers: [RunningTimer],
+        usage: [KidUsage]
+    ) -> Status {
+        guard hasKids else {
+            return Status(text: "Add a kid to start tracking screen time", tone: .calm)
+        }
+
+        // 1. A kid is waiting for an answer.
+        if let first = requests.first {
+            let text = requests.count == 1
+                ? "\(first.name) is asking for \(TimeText.spoken(first.minutes)) more"
+                : "\(requests.count) requests for more time"
+            return Status(text: text, tone: .attention)
+        }
+
+        // 2. Screens still on late at night.
+        if partOfDay == .night, let first = timers.first {
+            let text = timers.count == 1
+                ? "\(first.name)'s timer is still running late at night"
+                : "\(timers.count) timers still running late at night"
+            return Status(text: text, tone: .attention)
+        }
+
+        // 3. Someone went over their limit.
+        let over = usage.filter { $0.limit > 0 && $0.used > $0.limit }
+        if let first = over.first {
+            let text: String
+            switch over.count {
+            case 1: text = "\(first.name) is \(TimeText.compact(first.used - first.limit)) over today's limit"
+            case 2: text = "\(over[0].name) and \(over[1].name) are over their limits"
+            default: text = "\(over.count) kids are over their limits"
+            }
+            return Status(text: text, tone: .attention)
+        }
+
+        // 4. Timers running: say when the next one ends.
+        if let next = timers.min(by: { $0.endsAt < $1.endsAt }) {
+            let minutesLeft = max(Int((next.endsAt.timeIntervalSince(now) / 60).rounded(.up)), 1)
+            let text = timers.count == 1
+                ? "\(next.name)'s timer ends in \(TimeText.compact(minutesLeft))"
+                : "\(timers.count) timers running · next ends in \(TimeText.compact(minutesLeft))"
+            return Status(text: text, tone: .info)
+        }
+
+        // 5. Someone is close to their limit.
+        let near = usage
+            .filter { $0.limit > 0 && $0.used < $0.limit && $0.used * 100 >= $0.limit * 80 }
+            .min { ($0.limit - $0.used) < ($1.limit - $1.used) }
+        if let near {
+            return Status(text: "\(near.name) has \(TimeText.compact(near.limit - near.used)) left today", tone: .info)
+        }
+
+        // 6. Nothing needs attention.
+        let used = usage.reduce(0) { $0 + $1.used }
+        let limit = usage.reduce(0) { $0 + $1.limit }
+        if used == 0 {
+            let text = limit > 0 ? "Fresh day · \(TimeText.compact(limit)) to share" : "No screen time yet today"
+            return Status(text: text, tone: .calm)
+        }
+        guard limit > 0 else {
+            return Status(text: "\(TimeText.compact(used)) of screen time so far today", tone: .calm)
+        }
+        if partOfDay == .evening || partOfDay == .night {
+            return Status(text: "All quiet · everyone's within today's limits", tone: .calm)
+        }
+        return Status(text: "Everyone's within limits · \(TimeText.compact(limit - used)) left", tone: .calm)
+    }
 }
