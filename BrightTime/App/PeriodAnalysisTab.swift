@@ -518,55 +518,52 @@ struct PeriodAnalysisTab: View {
     // MARK: - Breakdowns
 
     private var byChildCard: some View {
+        let previous: DateInterval = {
+            let start = calendar.date(byAdding: period.calendarComponent, value: -1, to: interval.start) ?? interval.start
+            return DateInterval(start: start, end: interval.start)
+        }()
+        let previousDayCount = max(calendar.dateComponents([.day], from: previous.start, to: previous.end).day ?? 1, 1)
+
         let rows = children.map { child in
-            let elapsedDays = days(for: child).filter { $0.minutes != nil }
-            let dayCount = max(elapsedDays.count, 1)
-            let averageMinutes = elapsedDays.reduce(0) { $0 + ($1.minutes ?? 0) } / dayCount
-            let averageLimit = elapsedDays.reduce(0) { $0 + $1.limit } / dayCount
+            let elapsed = days(for: child).compactMap { day in day.minutes.map { (minutes: $0, limit: day.limit) } }
+            let dayCount = max(elapsed.count, 1)
+            let previousTotal = UsageAggregator.totalMinutes(in: previous, childIDs: [child.id], sessions: sessions)
             return ChildAverage(
                 child: child,
-                minutes: averageMinutes,
-                limit: averageLimit
+                minutes: elapsed.reduce(0) { $0 + $1.minutes } / dayCount,
+                limit: elapsed.reduce(0) { $0 + $1.limit } / dayCount,
+                lightest: elapsed.map { $0.minutes }.min() ?? 0,
+                busiest: elapsed.map { $0.minutes }.max() ?? 0,
+                daysCounted: elapsed.count,
+                previousMinutes: previousTotal > 0 ? previousTotal / previousDayCount : nil
             )
         }
         .sorted { $0.minutes > $1.minutes }
 
-        return VStack(alignment: .leading, spacing: 12) {
+        // One shared scale, so kids can be compared fairly.
+        let scaleMax = max(rows.map { max($0.busiest, $0.limit, $0.minutes) }.max() ?? 0, 60)
+        let comparisonLabel = period == .week ? "vs last week" : "vs last month"
+
+        return VStack(alignment: .leading, spacing: 14) {
             CardTitle(title: "Daily average by kid", detail: period == .week ? "This week" : "This month")
 
             if rows.isEmpty {
                 emptyMessage("Add a kid to see their daily average.")
             } else {
-                ForEach(rows) { row in
-                    HStack(spacing: 10) {
-                        ChildAvatarView(child: row.child, size: 30)
-                        VStack(alignment: .leading, spacing: 5) {
-                            HStack {
-                                Text(row.child.name)
-                                Spacer()
-                                Text(averageComparisonText(row))
-                                    .contentTransition(.numericText())
-                            }
-                            .font(.subheadline.weight(.bold))
-                            .foregroundStyle(averageColor(row))
-
-                            LimitBar(
-                                progress: row.limit > 0 ? Double(row.minutes) / Double(row.limit) : 0,
-                                color: averageColor(row)
-                            )
-                        }
-                    }
-                    .accessibilityElement(children: .combine)
+                ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
+                    if index > 0 { Divider().overlay(AppTheme.cardBorder) }
+                    AverageRangeRow(
+                        row: row,
+                        scaleMax: Double(scaleMax) * 1.08,
+                        color: averageColor(row),
+                        comparisonLabel: comparisonLabel
+                    )
                 }
+                AverageRangeLegend()
             }
         }
         .brightCard()
-    }
-
-    private func averageComparisonText(_ row: ChildAverage) -> String {
-        let usage = TimeText.compact(row.minutes)
-        guard row.limit > 0 else { return "\(usage) avg · no limit" }
-        return "\(usage) avg / \(TimeText.compact(row.limit)) limit"
+        .accessibilityIdentifier("daily-average-by-kid")
     }
 
     private func averageColor(_ row: ChildAverage) -> Color {
@@ -672,9 +669,228 @@ private struct WeekdayHeader: Identifiable {
 
 private struct ChildAverage: Identifiable {
     let child: ChildProfile
+    /// Average minutes per day over the days counted so far.
     let minutes: Int
+    /// Average daily limit over the same days.
     let limit: Int
+    let lightest: Int
+    let busiest: Int
+    let daysCounted: Int
+    /// Average per day in the previous week or month; nil when nothing was logged.
+    let previousMinutes: Int?
     var id: UUID { child.id }
+
+    enum Status { case over, close, within, noLimit }
+
+    var status: Status {
+        guard limit > 0 else { return .noLimit }
+        if minutes > limit { return .over }
+        if minutes * 100 >= limit * 80 { return .close }
+        return .within
+    }
+}
+
+/// One kid in "Daily average by kid": the average as a dot, the lightest to
+/// busiest day as a line through it, and the limit as a tick, on a scale shared
+/// by every kid in the card.
+private struct AverageRangeRow: View {
+    let row: ChildAverage
+    let scaleMax: Double
+    let color: Color
+    let comparisonLabel: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                ChildAvatarView(child: row.child, size: 26)
+                Text(row.child.name)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(AppTheme.primaryDeep)
+                    .lineLimit(1)
+                statusChip
+                Spacer(minLength: 4)
+                Text(TimeText.compact(row.minutes))
+                    .font(.subheadline.weight(.heavy).monospacedDigit())
+                    .foregroundStyle(row.status == .noLimit ? AppTheme.primaryDeep : color)
+                    .contentTransition(.numericText())
+            }
+
+            track
+                .frame(height: row.limit > 0 ? 44 : 36)
+
+            caption
+                .font(.caption)
+                .foregroundStyle(AppTheme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityText)
+    }
+
+    private var track: some View {
+        GeometryReader { proxy in
+            let width = proxy.size.width
+            let x = { (minutes: Int) -> CGFloat in
+                min(max(CGFloat(Double(minutes) / scaleMax) * width, 0), width)
+            }
+            let barTop: CGFloat = 24
+            let barMid = barTop + 6
+
+            ZStack(alignment: .topLeading) {
+                Capsule()
+                    .fill(AppTheme.surfaceMuted)
+                    .frame(width: width, height: 12)
+                    .offset(y: barTop)
+
+                if row.limit > 0 {
+                    Capsule()
+                        .fill(AppTheme.primary.opacity(0.22))
+                        .frame(width: x(row.limit), height: 12)
+                        .offset(y: barTop)
+                }
+
+                if row.daysCounted > 1, row.busiest > row.lightest {
+                    Capsule()
+                        .fill(color.opacity(0.6))
+                        .frame(width: max(x(row.busiest) - x(row.lightest), 3), height: 3)
+                        .offset(x: x(row.lightest), y: barMid - 1.5)
+                }
+
+                if row.limit > 0 {
+                    // The limit: a bright line from the tag down through the bar.
+                    RoundedRectangle(cornerRadius: 1.5)
+                        .fill(AppTheme.primaryDeep)
+                        .frame(width: 3, height: 26)
+                        .offset(x: x(row.limit) - 1.5, y: 16)
+
+                    limitTag
+                        .position(x: tagCenter(limitX: x(row.limit), width: width), y: 8.5)
+                }
+
+                Circle()
+                    .fill(color)
+                    .frame(width: 15, height: 15)
+                    .overlay { Circle().stroke(AppTheme.surface, lineWidth: 2.5) }
+                    .offset(x: x(row.minutes) - 7.5, y: barMid - 7.5)
+            }
+        }
+    }
+
+    private var limitText: String {
+        "Limit \(TimeText.compact(row.limit))"
+    }
+
+    /// "Limit 2h" above the limit line. Sits above the bar so it never covers
+    /// the average dot.
+    private var limitTag: some View {
+        Text(limitText)
+            .font(.caption2.weight(.heavy))
+            .foregroundStyle(AppTheme.background)
+            .lineLimit(1)
+            .fixedSize()
+            .padding(.horizontal, 8)
+            .frame(height: 17)
+            .background(AppTheme.primaryDeep, in: Capsule())
+    }
+
+    /// Centres the tag on the limit, sliding it inward near either edge so it
+    /// never gets cut off.
+    private func tagCenter(limitX: CGFloat, width: CGFloat) -> CGFloat {
+        let tagWidth = CGFloat(limitText.count) * 6.4 + 16
+        let half = tagWidth / 2
+        return min(max(limitX, half), max(width - half, half))
+    }
+
+    private var chipText: String {
+        switch row.status {
+        case .over: "\(TimeText.compact(row.minutes - row.limit)) over"
+        case .close: "Close to limit"
+        case .within: "Well within"
+        case .noLimit: "No limit"
+        }
+    }
+
+    private var chipTint: Color {
+        switch row.status {
+        case .over: AppTheme.dangerText
+        case .close: AppTheme.warningText
+        case .within: AppTheme.primary
+        case .noLimit: AppTheme.textSecondary
+        }
+    }
+
+    private var statusChip: some View {
+        let tint = chipTint
+        return Text(chipText)
+            .font(.caption2.weight(.bold))
+            .foregroundStyle(tint)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 3)
+            .background(tint.opacity(0.14), in: Capsule())
+            .lineLimit(1)
+            .fixedSize()
+    }
+
+    private var caption: Text {
+        var parts: [Text] = []
+        if row.daysCounted > 1 {
+            parts.append(Text("Days ranged ") + Text("\(TimeText.compact(row.lightest)) – \(TimeText.compact(row.busiest))").bold())
+        } else {
+            parts.append(Text(row.daysCounted == 1 ? "1 day so far" : "No days yet"))
+        }
+        if row.limit == 0 {
+            parts.append(Text("no limit set"))
+        }
+        if let previous = row.previousMinutes {
+            let change = row.minutes - previous
+            if change != 0 {
+                let arrow = change > 0 ? "↑" : "↓"
+                let tint = change > 0 ? AppTheme.dangerText : AppTheme.primary
+                parts.append(Text("\(arrow) \(TimeText.compact(abs(change)))").bold().foregroundStyle(tint) + Text(" \(comparisonLabel)"))
+            } else {
+                parts.append(Text("same as \(comparisonLabel.replacingOccurrences(of: "vs ", with: ""))"))
+            }
+        }
+        return parts.dropFirst().reduce(parts.first ?? Text("")) { $0 + Text(" · ") + $1 }
+    }
+
+    private var accessibilityText: String {
+        var text = "\(row.child.name), average \(TimeText.spoken(row.minutes)) a day"
+        switch row.status {
+        case .over: text += ", \(TimeText.spoken(row.minutes - row.limit)) over a \(TimeText.spoken(row.limit)) limit"
+        case .close, .within: text += ", limit \(TimeText.spoken(row.limit))"
+        case .noLimit: text += ", no limit set"
+        }
+        if row.daysCounted > 1 {
+            text += ". Lightest day \(TimeText.spoken(row.lightest)), busiest \(TimeText.spoken(row.busiest))"
+        }
+        if let previous = row.previousMinutes, previous != row.minutes {
+            let change = row.minutes - previous
+            text += ". \(change > 0 ? "Up" : "Down") \(TimeText.spoken(abs(change))) \(comparisonLabel)"
+        }
+        return text
+    }
+}
+
+/// Key for the dot, range line and limit tick.
+private struct AverageRangeLegend: View {
+    var body: some View {
+        HStack(spacing: 12) {
+            item("average") { Circle().fill(AppTheme.textSecondary).frame(width: 8, height: 8) }
+            item("lightest – busiest") { Capsule().fill(AppTheme.textSecondary).frame(width: 14, height: 3) }
+            item("within limit") { Capsule().fill(AppTheme.primary.opacity(0.35)).frame(width: 14, height: 7) }
+        }
+        .font(.caption2)
+        .foregroundStyle(AppTheme.textSecondary)
+        .accessibilityHidden(true)
+    }
+
+    private func item<Mark: View>(_ label: String, @ViewBuilder mark: () -> Mark) -> some View {
+        HStack(spacing: 4) {
+            mark()
+            Text(label).lineLimit(1)
+        }
+    }
 }
 
 private struct KidTodayDeviceGroup: Identifiable {
