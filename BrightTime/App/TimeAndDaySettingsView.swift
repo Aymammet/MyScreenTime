@@ -24,6 +24,7 @@ struct TimeAndDaySettingsView: View {
                 } else {
                     NavigationLink {
                         TimeZonePickerView(selection: $manualZoneID)
+                            .popsToRootOnTabReselect()
                     } label: {
                         zoneSummary(activeZone)
                     }

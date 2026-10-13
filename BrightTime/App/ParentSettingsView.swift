@@ -67,6 +67,7 @@ struct ParentSettingsView: View {
                 reportsSection
                 accountSection
             }
+            .scrollsFormToTopOnTabReselect()
             .contentMargins(.bottom, AppTheme.tabBarContentClearance, for: .scrollContent)
             .scrollContentBackground(.hidden)
             .background(AppTheme.background.ignoresSafeArea())
@@ -108,6 +109,7 @@ struct ParentSettingsView: View {
         Section {
             NavigationLink {
                 EditParentProfileView(parent: parent)
+                    .popsToRootOnTabReselect()
             } label: {
                 HStack(spacing: 14) {
                     ParentAvatarView(parent: parent, size: 56)
@@ -153,6 +155,7 @@ struct ParentSettingsView: View {
 
             NavigationLink {
                 TimeAndDaySettingsView()
+                    .popsToRootOnTabReselect()
             } label: {
                 LabeledContent {
                     Text(timeSummary)
@@ -173,6 +176,7 @@ struct ParentSettingsView: View {
         Section {
             NavigationLink {
                 FamilySharingView()
+                    .popsToRootOnTabReselect()
             } label: {
                 LabeledContent {
                     Text(familySummary)
@@ -185,6 +189,7 @@ struct ParentSettingsView: View {
 
             NavigationLink {
                 EarnActivitiesView()
+                    .popsToRootOnTabReselect()
             } label: {
                 settingLabel("Earn-time activities", systemImage: "star.circle.fill", tint: AppTheme.warning)
             }
@@ -192,6 +197,7 @@ struct ParentSettingsView: View {
 
             NavigationLink {
                 KidModeSetupView(parent: parent)
+                    .popsToRootOnTabReselect()
             } label: {
                 settingLabel("Kid mode", systemImage: "hand.raised.fill", tint: Color(hex: 0x6F8FF0))
             }
@@ -206,6 +212,7 @@ struct ParentSettingsView: View {
         Section {
             NavigationLink {
                 WeeklyReportHistoryView()
+                    .popsToRootOnTabReselect()
             } label: {
                 LabeledContent {
                     Text("Past weeks")
@@ -300,6 +307,7 @@ struct ParentSettingsView: View {
                 ForEach(children) { child in
                     NavigationLink {
                         ChildSettingsView(parent: parent, child: child)
+                            .popsToRootOnTabReselect()
                     } label: {
                         HStack(spacing: 12) {
                             ChildAvatarView(child: child, size: 40)

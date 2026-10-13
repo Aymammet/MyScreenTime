@@ -119,7 +119,9 @@ struct PeriodAnalysisTab: View {
             .padding(.horizontal, 16)
             .padding(.top, 4)
             .padding(.bottom, AppTheme.tabBarContentClearance)
+            .scrollTopAnchor()
         }
+        .scrollsToTopOnTabReselect()
         .sensoryFeedback(.selection, trigger: offset)
     }
 

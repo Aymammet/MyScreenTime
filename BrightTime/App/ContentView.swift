@@ -125,7 +125,9 @@ struct ContentView: View {
                 .padding(.bottom, AppTheme.tabBarContentClearance)
                 .animation(AppTheme.motion(reduceMotion: reduceMotion), value: activeChildren.map(\.id))
                 .animation(AppTheme.motion(reduceMotion: reduceMotion), value: archivedChildren.map(\.id))
+                .scrollTopAnchor()
             }
+            .scrollsToTopOnTabReselect()
             .background(AppTheme.background.ignoresSafeArea())
             .navigationTitle("BrightTime")
             .navigationBarTitleDisplayMode(.inline)
@@ -508,6 +510,7 @@ struct ContentView: View {
         return VStack(alignment: .leading, spacing: 12) {
             NavigationLink {
                 ChildDetailView(child: child)
+                    .popsToRootOnTabReselect()
             } label: {
                 HStack(spacing: 12) {
                     ChildAvatarView(child: child, size: 48)

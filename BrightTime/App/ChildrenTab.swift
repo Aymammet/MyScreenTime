@@ -45,7 +45,9 @@ struct ChildrenTab: View {
             .padding(.top, 4)
             .padding(.bottom, AppTheme.tabBarContentClearance)
             .animation(AppTheme.motion(reduceMotion: reduceMotion), value: selectedChild?.id)
+            .scrollTopAnchor()
         }
+        .scrollsToTopOnTabReselect()
         .sensoryFeedback(.selection, trigger: selectedChildID)
         .sheet(
             isPresented: Binding(

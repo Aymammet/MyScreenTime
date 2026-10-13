@@ -79,6 +79,7 @@ struct DevicesTab: View {
                         ForEach(filteredDevices) { device in
                             NavigationLink {
                                 DeviceDetailView(device: device, children: children, sessions: sessions)
+                                    .popsToRootOnTabReselect()
                             } label: {
                                 deviceCard(device)
                             }
@@ -93,7 +94,9 @@ struct DevicesTab: View {
             .padding(.horizontal, 16)
             .padding(.top, 4)
             .padding(.bottom, AppTheme.tabBarContentClearance)
+            .scrollTopAnchor()
         }
+        .scrollsToTopOnTabReselect()
         .sheet(isPresented: $isAddingDevice) {
             DeviceFormView(children: children)
         }

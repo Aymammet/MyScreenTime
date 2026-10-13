@@ -234,6 +234,9 @@ private struct FamilyShellView: View {
     let onSignOut: () -> Void
 
     @State private var destination: AnalysisDestination = .home
+    /// Goes up when the parent taps the tab that's already open: the tab
+    /// goes back to its first screen and scrolls to the top.
+    @State private var reselectCount = 0
     @Namespace private var tabIndicator
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -262,6 +265,7 @@ private struct FamilyShellView: View {
                 }
             }
             .id(destination)
+            .environment(\.tabReselectCount, reselectCount)
             .transition(.opacity.combined(with: .scale(scale: 0.985)))
         }
         .animation(AppTheme.motion(reduceMotion: reduceMotion), value: destination)
@@ -270,6 +274,7 @@ private struct FamilyShellView: View {
         }
         .tint(AppTheme.primary)
         .sensoryFeedback(.selection, trigger: destination)
+        .sensoryFeedback(.impact(weight: .light), trigger: reselectCount)
     }
 
     /// Floating capsule tab bar: the selected tab expands into a teal pill with its
@@ -280,8 +285,12 @@ private struct FamilyShellView: View {
                 let isSelected = destination == item
 
                 Button {
-                    withAnimation(AppTheme.motion(reduceMotion: reduceMotion)) {
-                        destination = item
+                    if isSelected {
+                        reselectCount += 1
+                    } else {
+                        withAnimation(AppTheme.motion(reduceMotion: reduceMotion)) {
+                            destination = item
+                        }
                     }
                 } label: {
                     HStack(spacing: 6) {
@@ -323,5 +332,167 @@ private struct FamilyShellView: View {
         .shadow(color: .black.opacity(0.12), radius: 16, y: 8)
         .padding(.horizontal, 16)
         .padding(.bottom, 4)
+    }
+}
+
+// MARK: - Tapping the open tab again
+
+private struct TabReselectKey: EnvironmentKey {
+    static let defaultValue = 0
+}
+
+extension EnvironmentValues {
+    /// Goes up by one each time the parent taps the tab that's already open.
+    var tabReselectCount: Int {
+        get { self[TabReselectKey.self] }
+        set { self[TabReselectKey.self] = newValue }
+    }
+}
+
+enum ScrollTopAnchor {
+    static let id = "brighttime.scroll-top"
+}
+
+extension View {
+    /// Marks the top of a tab's scrolling content. Goes on the content inside the ScrollView.
+    func scrollTopAnchor() -> some View {
+        background(alignment: .top) {
+            Color.clear
+                .frame(height: 1)
+                .id(ScrollTopAnchor.id)
+        }
+    }
+
+    /// Scrolls back to `scrollTopAnchor()` when the open tab is tapped again.
+    func scrollsToTopOnTabReselect() -> some View {
+        modifier(ScrollToTopOnTabReselect())
+    }
+
+    /// Same, for a Form or List (scroll positions don't apply to those).
+    /// Goes all the way up, so a collapsed large title opens again.
+    func scrollsFormToTopOnTabReselect() -> some View {
+        modifier(FormScrollToTop())
+    }
+
+    /// Closes a pushed screen when its tab is tapped again, like iPhone apps do.
+    func popsToRootOnTabReselect() -> some View {
+        modifier(PopToRootOnTabReselect())
+    }
+}
+
+private struct ScrollToTopOnTabReselect: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 18.0, *) {
+            content.modifier(EdgeScrollToTop())
+        } else {
+            content.modifier(AnchorScrollToTop())
+        }
+    }
+}
+
+/// iOS 18+: scrolls to the very top edge, so a large title opens back up.
+@available(iOS 18.0, *)
+private struct EdgeScrollToTop: ViewModifier {
+    @Environment(\.tabReselectCount) private var reselectCount
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var position = ScrollPosition(edge: .top)
+
+    func body(content: Content) -> some View {
+        content
+            .scrollPosition($position)
+            .onChange(of: reselectCount) {
+                withAnimation(reduceMotion ? nil : .smooth(duration: 0.35)) {
+                    position.scrollTo(edge: .top)
+                }
+            }
+    }
+}
+
+/// iOS 17: scrolls to the `scrollTopAnchor()` marker.
+private struct AnchorScrollToTop: ViewModifier {
+    @Environment(\.tabReselectCount) private var reselectCount
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        ScrollViewReader { proxy in
+            content.onChange(of: reselectCount) {
+                withAnimation(reduceMotion ? nil : .smooth(duration: 0.35)) {
+                    proxy.scrollTo(ScrollTopAnchor.id, anchor: .top)
+                }
+            }
+        }
+    }
+}
+
+private struct FormScrollToTop: ViewModifier {
+    @Environment(\.tabReselectCount) private var reselectCount
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        content.background {
+            FormScrollToTopBridge(trigger: reselectCount, animated: !reduceMotion)
+                .frame(width: 0, height: 0)
+                .accessibilityHidden(true)
+        }
+    }
+}
+
+/// Finds the scroll view UIKit uses for a Form and scrolls it to the top edge.
+private struct FormScrollToTopBridge: UIViewRepresentable {
+    let trigger: Int
+    let animated: Bool
+
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView()
+        view.isUserInteractionEnabled = false
+        return view
+    }
+
+    func updateUIView(_ view: UIView, context: Context) {
+        guard context.coordinator.lastTrigger != trigger else { return }
+        context.coordinator.lastTrigger = trigger
+        guard let scrollView = Self.nearestScrollView(around: view) else { return }
+        let top = CGPoint(x: scrollView.contentOffset.x, y: -scrollView.adjustedContentInset.top)
+        scrollView.setContentOffset(top, animated: animated)
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(lastTrigger: trigger)
+    }
+
+    final class Coordinator {
+        var lastTrigger: Int
+        init(lastTrigger: Int) { self.lastTrigger = lastTrigger }
+    }
+
+    /// Walks up from the marker and returns the first scroll view found below each ancestor.
+    private static func nearestScrollView(around view: UIView) -> UIScrollView? {
+        var ancestor = view.superview
+        while let current = ancestor {
+            if let found = firstScrollView(in: current) { return found }
+            ancestor = current.superview
+        }
+        return nil
+    }
+
+    private static func firstScrollView(in root: UIView) -> UIScrollView? {
+        var queue = [root]
+        while !queue.isEmpty {
+            let next = queue.removeFirst()
+            if let scrollView = next as? UIScrollView, scrollView.isScrollEnabled { return scrollView }
+            queue.append(contentsOf: next.subviews)
+        }
+        return nil
+    }
+}
+
+private struct PopToRootOnTabReselect: ViewModifier {
+    @Environment(\.tabReselectCount) private var reselectCount
+    @Environment(\.dismiss) private var dismiss
+
+    func body(content: Content) -> some View {
+        content.onChange(of: reselectCount) {
+            dismiss()
+        }
     }
 }
