@@ -5,7 +5,9 @@ import SwiftUI
 struct ChildSettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var timerManager: ScreenTimerManager
     @Query private var allChildren: [ChildProfile]
+    @Query private var allDevices: [Device]
     @Query private var allUsageSessions: [UsageSession]
 
     let parent: ParentProfile
@@ -22,6 +24,8 @@ struct ChildSettingsView: View {
     @State private var weekdayLimitMinutes: Int
     @State private var weekendLimitMinutes: Int
     @State private var saveErrorMessage: String?
+    @State private var errorTitle = "Couldn’t Save Kid"
+    @State private var isConfirmingDelete = false
 
     init(parent: ParentProfile, child: ChildProfile) {
         self.parent = parent
@@ -67,7 +71,7 @@ struct ChildSettingsView: View {
                     }
                 }
 
-                TextField("Child's name", text: $name)
+                TextField("Kid's name", text: $name)
                     .textContentType(.name)
                     .textInputAutocapitalization(.words)
                     .accessibilityIdentifier("settings-child-name")
@@ -97,7 +101,7 @@ struct ChildSettingsView: View {
             } header: {
                 Text("Color")
             } footer: {
-                Text("Used on the dashboard and charts so this child is easy to tell apart from siblings.")
+                Text("Used on the dashboard and charts so this kid is easy to tell apart from siblings.")
             }
 
             usageSection
@@ -110,6 +114,19 @@ struct ChildSettingsView: View {
                 } else {
                     limitStepper("Daily limit", value: $dailyLimitMinutes)
                 }
+            }
+
+            Section {
+                Button(role: .destructive) {
+                    isConfirmingDelete = true
+                } label: {
+                    Label("Delete kid", systemImage: "trash")
+                        .frame(maxWidth: .infinity, alignment: .center)
+                }
+                .foregroundStyle(AppTheme.dangerText)
+                .accessibilityIdentifier("settings-delete-kid")
+            } footer: {
+                Text("Permanently deletes this kid, their personal devices, usage history, and time-bank activity.")
             }
         }
         .navigationTitle(child.name)
@@ -132,10 +149,18 @@ struct ChildSettingsView: View {
                 selectedAvatar = gender.avatarChoices[0]
             }
         }
-        .alert("Couldn’t Save Child", isPresented: Binding(
+        .alert(errorTitle, isPresented: Binding(
             get: { saveErrorMessage != nil },
             set: { if !$0 { saveErrorMessage = nil } }
         )) { Button("OK") {} } message: { Text(saveErrorMessage ?? "Please try again.") }
+        .alert("Delete kid?", isPresented: $isConfirmingDelete) {
+            Button("Delete \(child.name)", role: .destructive) {
+                deleteKid()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This permanently deletes \(child.name), their personal devices, screen-time history, and time-bank activity. This cannot be undone.")
+        }
     }
 
     private var avatar: some View {
@@ -184,6 +209,7 @@ struct ChildSettingsView: View {
     }
 
     private func save() {
+        errorTitle = "Couldn’t Save Kid"
         child.name = normalizedName
         child.gender = selectedGender
         child.defaultAvatar = selectedAvatar
@@ -198,6 +224,25 @@ struct ChildSettingsView: View {
             dismiss()
         } catch {
             modelContext.rollback()
+            saveErrorMessage = error.localizedDescription
+        }
+    }
+
+    private func deleteKid() {
+        timerManager.stopTimer(
+            forChildID: child.id,
+            children: allChildren,
+            devices: allDevices,
+            context: modelContext
+        )
+        modelContext.delete(child)
+
+        do {
+            try modelContext.save()
+            dismiss()
+        } catch {
+            modelContext.rollback()
+            errorTitle = "Couldn’t Delete Kid"
             saveErrorMessage = error.localizedDescription
         }
     }

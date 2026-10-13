@@ -498,7 +498,7 @@ final class FamilySync {
         switch kind {
         case .child:
             let child = fetchOne(ChildProfile.self, id: id, in: context) ?? {
-                let created = ChildProfile(id: id, name: record.string("name") ?? "Child", parent: localParent())
+                let created = ChildProfile(id: id, name: record.string("name") ?? "Kid", parent: localParent())
                 context.insert(created)
                 return created
             }()

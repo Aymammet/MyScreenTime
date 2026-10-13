@@ -42,7 +42,7 @@ Beachhead: families with consoles and a shared TV, and two-household / separated
 | Phase | When | Build | Gate to the next phase |
 | --- | --- | --- | --- |
 | 1 · Launch-ready | First 30 days | Co-parent sync tested on real iPhones · subscriptions and paywall · privacy policy · TestFlight with 10 families | 5 of 10 families still logging after 2 weeks |
-| 2 · Habit | Months 1–3 | Kid companion + Ask for more · Apple Watch, Control Center · NFC tags to start a timer · Sunday recap | Day-30 retention at 35% or more |
+| 2 · Habit | Months 1–3 | Kid companion + Ask for more · Apple Watch, Control Center · NFC tags to start a timer · Monday weekly report | Day-30 retention at 35% or more |
 | 3 · Control | Months 3–6 | Limits on kids' iPhones (Screen Time API) · auto-tracked iPhone/iPad use · bedtime and school schedules · public App Store launch | Family Controls entitlement approved |
 | 4 · Network | Months 6–12 | Share cards and referrals · grandparent and sitter roles · web viewer for Android co-parents · year-in-review | — |
 

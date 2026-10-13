@@ -5,7 +5,9 @@ import SwiftUI
 struct ChildFormView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var timerManager: ScreenTimerManager
     @Query private var allChildren: [ChildProfile]
+    @Query private var allDevices: [Device]
 
     let parent: ParentProfile
     let child: ChildProfile?
@@ -21,6 +23,8 @@ struct ChildFormView: View {
     @State private var weekendLimitMinutes: Int
     @State private var selectedColor: ChildColor
     @State private var saveErrorMessage: String?
+    @State private var errorTitle = "Couldn’t Save Kid"
+    @State private var isConfirmingDelete = false
 
     init(parent: ParentProfile, child: ChildProfile? = nil) {
         self.parent = parent
@@ -80,7 +84,7 @@ struct ChildFormView: View {
                         }
                     }
 
-                    TextField("Child's name", text: $name)
+                    TextField("Kid's name", text: $name)
                         .textContentType(.name)
                         .textInputAutocapitalization(.words)
                         .accessibilityIdentifier("child-name-field")
@@ -91,10 +95,10 @@ struct ChildFormView: View {
                     if !name.isEmpty, !ChildProfile.isValidName(name) {
                         validationMessage("Enter a name between 2 and 16 characters.")
                     } else if hasDuplicateName {
-                        validationMessage("A child with this name already exists.")
+                        validationMessage("A kid with this name already exists.")
                     }
                 } header: {
-                    Text("Child profile")
+                    Text("Kid profile")
                 }
 
                 Section {
@@ -124,7 +128,7 @@ struct ChildFormView: View {
                 } header: {
                     Text("Color")
                 } footer: {
-                    Text("Used on the dashboard and charts so this child is easy to tell apart from siblings.")
+                    Text("Used on the dashboard and charts so this kid is easy to tell apart from siblings.")
                 }
 
                 Section {
@@ -143,10 +147,25 @@ struct ChildFormView: View {
                 } footer: {
                     Text(usesSchedule
                          ? "Weekday limits apply Monday through Friday; weekend limits apply Saturday and Sunday."
-                         : "This limit applies every day to the child's combined use across all devices.")
+                         : "This limit applies every day to the kid's combined use across all devices.")
+                }
+
+                if child != nil {
+                    Section {
+                        Button(role: .destructive) {
+                            isConfirmingDelete = true
+                        } label: {
+                            Label("Delete kid", systemImage: "trash")
+                                .frame(maxWidth: .infinity, alignment: .center)
+                        }
+                        .foregroundStyle(AppTheme.dangerText)
+                        .accessibilityIdentifier("delete-kid-profile")
+                    } footer: {
+                        Text("Permanently deletes this kid, their personal devices, usage history, and time-bank activity.")
+                    }
                 }
             }
-            .navigationTitle(child == nil ? "Add Child" : "Edit Child")
+            .navigationTitle(child == nil ? "Add Kid" : "Edit Kid")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -164,7 +183,7 @@ struct ChildFormView: View {
                 }
             }
             .alert(
-                "Couldn’t Save Child",
+                errorTitle,
                 isPresented: Binding(
                     get: { saveErrorMessage != nil },
                     set: { if !$0 { saveErrorMessage = nil } }
@@ -175,6 +194,14 @@ struct ChildFormView: View {
                 }
             } message: {
                 Text(saveErrorMessage ?? "Please try again.")
+            }
+            .alert("Delete kid?", isPresented: $isConfirmingDelete, presenting: child) { kid in
+                Button("Delete \(kid.name)", role: .destructive) {
+                    deleteKid(kid)
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: { kid in
+                Text("This permanently deletes \(kid.name), their personal devices, screen-time history, and time-bank activity. This cannot be undone.")
             }
             .onChange(of: selectedPhoto) { _, item in
                 Task {
@@ -240,6 +267,7 @@ struct ChildFormView: View {
     }
 
     private func saveChild() {
+        errorTitle = "Couldn’t Save Kid"
         if let child {
             child.name = normalizedName
             child.gender = selectedGender
@@ -271,6 +299,25 @@ struct ChildFormView: View {
             dismiss()
         } catch {
             modelContext.rollback()
+            saveErrorMessage = error.localizedDescription
+        }
+    }
+
+    private func deleteKid(_ kid: ChildProfile) {
+        timerManager.stopTimer(
+            forChildID: kid.id,
+            children: allChildren,
+            devices: allDevices,
+            context: modelContext
+        )
+        modelContext.delete(kid)
+
+        do {
+            try modelContext.save()
+            dismiss()
+        } catch {
+            modelContext.rollback()
+            errorTitle = "Couldn’t Delete Kid"
             saveErrorMessage = error.localizedDescription
         }
     }

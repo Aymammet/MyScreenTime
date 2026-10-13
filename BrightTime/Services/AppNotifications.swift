@@ -21,7 +21,7 @@ final class AppRouter {
 }
 
 /// Local notifications beyond timers: time requests (with Approve / Not now
-/// buttons) and the Sunday recap.
+/// buttons) and the Monday weekly report.
 @MainActor
 final class AppNotifications: NSObject, UNUserNotificationCenterDelegate {
     static let shared = AppNotifications()
@@ -116,9 +116,9 @@ final class AppNotifications: NSObject, UNUserNotificationCenterDelegate {
         }
     }
 
-    // MARK: - Sunday recap
+    // MARK: - Monday weekly report
 
-    /// Keeps one repeating "your week" notification for Sunday at 6 PM, or none
+    /// Keeps one repeating "last week" notification for Monday at 9 AM, or none
     /// when the parent turned it (or notifications) off.
     func rescheduleRecap(kidNames: [String], notificationsOn: Bool) {
         let center = UNUserNotificationCenter.current()
@@ -127,14 +127,14 @@ final class AppNotifications: NSObject, UNUserNotificationCenterDelegate {
         Task {
             guard await canNotify() else { return }
             let content = UNMutableNotificationContent()
-            content.title = "Your week in BrightTime"
+            content.title = "Your weekly BrightTime report"
             let names = ListFormatter.localizedString(byJoining: kidNames)
-            content.body = "See how \(names) did this week: totals, streaks and the best day."
+            content.body = "See how \(names) did last week: totals, streaks and the best day."
             content.sound = .default
             content.userInfo = ["route": "recap"]
             var when = DateComponents()
-            when.weekday = 1
-            when.hour = 18
+            when.weekday = 2
+            when.hour = 9
             when.minute = 0
             let trigger = UNCalendarNotificationTrigger(dateMatching: when, repeats: true)
             try? await center.add(UNNotificationRequest(identifier: Self.recapID, content: content, trigger: trigger))

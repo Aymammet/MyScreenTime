@@ -1,6 +1,6 @@
 import Foundation
 
-/// The family's week in numbers, for the Sunday recap screen and its share card.
+/// The family's week in numbers, for the Monday report screen and its share card.
 struct WeeklyRecap: Equatable {
     struct Kid: Identifiable, Equatable {
         let id: UUID
@@ -51,17 +51,19 @@ struct WeeklyRecap: Equatable {
 
 @MainActor
 enum WeeklyRecapCalculator {
-    /// The week a recap is about: this week if today is its last day, otherwise
-    /// the last full week. So on a Sunday it's the week just ending (Monday-start
-    /// weeks) or the week that ended yesterday (Sunday-start weeks).
+    /// Weekly reports always cover the last completed Monday–Sunday period. This
+    /// stays independent of the chart preference for which day starts a week,
+    /// because the report is delivered at the beginning of Monday.
     static func recapInterval(now: Date = .now, calendar: Calendar = AppCalendar.day) -> DateInterval {
-        guard let current = calendar.dateInterval(of: .weekOfYear, for: now) else {
-            return DateInterval(start: calendar.startOfDay(for: now), duration: 7 * 86_400)
+        var reportCalendar = calendar
+        reportCalendar.firstWeekday = 2
+        reportCalendar.minimumDaysInFirstWeek = 1
+        guard let current = reportCalendar.dateInterval(of: .weekOfYear, for: now) else {
+            let end = reportCalendar.startOfDay(for: now)
+            let start = reportCalendar.date(byAdding: .day, value: -7, to: end) ?? end
+            return DateInterval(start: start, end: end)
         }
-        if let lastDay = calendar.date(byAdding: .day, value: -1, to: current.end), now >= lastDay {
-            return current
-        }
-        let start = calendar.date(byAdding: .weekOfYear, value: -1, to: current.start) ?? current.start
+        let start = reportCalendar.date(byAdding: .weekOfYear, value: -1, to: current.start) ?? current.start
         return DateInterval(start: start, end: current.start)
     }
 
@@ -69,9 +71,10 @@ enum WeeklyRecapCalculator {
         children: [ChildProfile],
         sessions: [UsageSession],
         now: Date = .now,
-        calendar: Calendar = AppCalendar.day
+        calendar: Calendar = AppCalendar.day,
+        interval requestedInterval: DateInterval? = nil
     ) -> WeeklyRecap {
-        let interval = recapInterval(now: now, calendar: calendar)
+        let interval = requestedInterval ?? recapInterval(now: now, calendar: calendar)
         let previousStart = calendar.date(byAdding: .weekOfYear, value: -1, to: interval.start) ?? interval.start
         let previous = DateInterval(start: previousStart, end: interval.start)
         let active = children.filter(\.isActive).sorted { $0.createdAt < $1.createdAt }

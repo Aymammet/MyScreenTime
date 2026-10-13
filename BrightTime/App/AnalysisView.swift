@@ -6,7 +6,7 @@ enum AnalysisDestination: String, CaseIterable, Identifiable {
     case insights = "Insights"
     case children = "Kids"
     case devices = "Devices"
-    case profile = "Profile"
+    case profile = "Settings"
 
     var id: String { rawValue }
 

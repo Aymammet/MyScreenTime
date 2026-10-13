@@ -106,8 +106,8 @@ struct DeviceFormView: View {
                 Section {
                     Text(
                         isShared
-                            ? "Everyone in the family can select this device. Each usage session is still assigned to the child who used it."
-                            : "This device is assigned only to \(selectedChild?.name ?? "the selected child")."
+                            ? "Everyone in the family can select this device. Each usage session is still assigned to the kid who used it."
+                            : "This device is assigned only to \(selectedChild?.name ?? "the selected kid")."
                     )
                     .font(.footnote)
                     .foregroundStyle(.secondary)

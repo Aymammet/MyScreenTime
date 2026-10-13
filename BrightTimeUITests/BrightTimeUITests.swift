@@ -31,7 +31,7 @@ final class BrightTimeUITests: XCTestCase {
         XCTAssertTrue(greeting.waitForExistence(timeout: 5))
 
         app.buttons["add-child-button"].tap()
-        XCTAssertTrue(app.navigationBars["Add Child"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Add Kid"].waitForExistence(timeout: 5))
 
         let childNameField = app.textFields["child-name-field"]
         childNameField.tap()

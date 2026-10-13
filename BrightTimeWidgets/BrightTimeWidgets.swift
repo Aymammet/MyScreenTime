@@ -124,7 +124,7 @@ struct FamilyWidget: Widget {
                 }
         }
         .configurationDisplayName("Screen time")
-        .description("Time left today and running timers for each child.")
+        .description("Time left today and running timers for each kid.")
         .supportedFamilies([
             .systemSmall, .systemMedium,
             .accessoryCircular, .accessoryRectangular, .accessoryInline,
@@ -372,12 +372,12 @@ struct FamilyWidgetView: View {
     private var emptyView: some View {
         switch family {
         case .accessoryInline:
-            Label("Add a child in BrightTime", systemImage: "sun.max.fill")
+            Label("Add a kid in BrightTime", systemImage: "sun.max.fill")
         case .accessoryCircular:
             Image(systemName: "sun.max.fill")
                 .font(.title2)
         case .accessoryRectangular:
-            Text("Add a child in BrightTime to see their time here.")
+            Text("Add a kid in BrightTime to see their time here.")
                 .font(.caption)
         default:
             VStack(alignment: .leading, spacing: 6) {
@@ -385,7 +385,7 @@ struct FamilyWidgetView: View {
                     .font(.title2)
                     .foregroundStyle(WidgetPalette.tealBright)
                 Spacer(minLength: 0)
-                Text("Add a child in BrightTime to see their screen time here.")
+                Text("Add a kid in BrightTime to see their screen time here.")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(WidgetPalette.deep)
             }
