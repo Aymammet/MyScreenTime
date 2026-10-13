@@ -277,7 +277,7 @@ struct DeviceDetailView: View {
                     } else {
                         Chart(usage) { point in
                             BarMark(
-                                x: .value("Child", point.child.name),
+                                x: .value("Kid", point.child.name),
                                 y: .value("Minutes", point.minutes)
                             )
                             .foregroundStyle(point.child.color.color)
@@ -295,7 +295,7 @@ struct DeviceDetailView: View {
                 }
                 .brightCard()
                 .accessibilityElement(children: .combine)
-                .accessibilityLabel("Weekly usage by child")
+                .accessibilityLabel("Weekly usage by kid")
             }
             .padding(.horizontal, 16)
             .padding(.top, 4)

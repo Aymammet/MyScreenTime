@@ -1,7 +1,7 @@
 import SwiftData
 import SwiftUI
 
-/// The Sunday recap: the family's week, each kid's streak and best day, and a
+/// The Monday report: the family's last completed week, each kid's streak and best day, and a
 /// card to share in the family chat.
 struct WeeklyRecapView: View {
     @Environment(\.dismiss) private var dismiss
@@ -77,6 +77,131 @@ struct WeeklyRecapView: View {
         renderer.scale = 3
         if let image = renderer.uiImage {
             shareImage = Image(uiImage: image)
+        }
+    }
+}
+
+/// Past completed weeks remain available from Profile. Reports are calculated
+/// from the usage records BrightTime already keeps, so there is no duplicate copy
+/// that can drift out of sync after a parent corrects an entry.
+struct WeeklyReportHistoryView: View {
+    @Query(sort: \ChildProfile.createdAt) private var children: [ChildProfile]
+    @Query(sort: \UsageSession.startedAt, order: .reverse) private var sessions: [UsageSession]
+    @AppStorage(AppCalendar.Keys.revision) private var calendarRevision = 0
+
+    private var reportIntervals: [DateInterval] {
+        _ = calendarRevision
+        let latest = WeeklyRecapCalculator.recapInterval()
+        var intervals: [DateInterval] = []
+        var end = latest.end
+        let calendar = AppCalendar.day
+
+        for _ in 0..<52 {
+            guard let start = calendar.date(byAdding: .day, value: -7, to: end) else { break }
+            let interval = DateInterval(start: start, end: end)
+            if sessions.contains(where: { $0.startedAt < interval.end && $0.endedAt > interval.start }) {
+                intervals.append(interval)
+            }
+            end = start
+        }
+        return intervals
+    }
+
+    var body: some View {
+        Group {
+            if reportIntervals.isEmpty {
+                ContentUnavailableView(
+                    "No weekly reports yet",
+                    systemImage: "calendar.badge.clock",
+                    description: Text("A completed week with recorded usage will appear here after Sunday ends.")
+                )
+            } else {
+                List(reportIntervals, id: \.start) { interval in
+                    let recap = WeeklyRecapCalculator.make(
+                        children: children,
+                        sessions: sessions,
+                        interval: interval
+                    )
+                    NavigationLink {
+                        WeeklyReportHistoryDetail(recap: recap)
+                    } label: {
+                        WeeklyReportHistoryRow(recap: recap)
+                    }
+                }
+                .scrollContentBackground(.hidden)
+                .background(AppTheme.background)
+            }
+        }
+        .navigationTitle("Weekly Reports")
+        .navigationBarTitleDisplayMode(.large)
+        .background(AppTheme.background.ignoresSafeArea())
+    }
+}
+
+private struct WeeklyReportHistoryRow: View {
+    let recap: WeeklyRecap
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(recap.title)
+                .font(.headline)
+                .foregroundStyle(AppTheme.primaryDeep)
+            HStack(spacing: 8) {
+                Text(TimeText.compact(recap.totalMinutes))
+                    .font(.subheadline.weight(.bold).monospacedDigit())
+                if recap.previousMinutes > 0 {
+                    Label(
+                        TimeText.compact(abs(recap.change)),
+                        systemImage: recap.change <= 0 ? "arrow.down.right" : "arrow.up.right"
+                    )
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(recap.change <= 0 ? AppTheme.primary : AppTheme.warningText)
+                }
+                Spacer()
+                Text("\(recap.kids.count) kid\(recap.kids.count == 1 ? "" : "s")")
+                    .font(.caption)
+                    .foregroundStyle(AppTheme.textSecondary)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+private struct WeeklyReportHistoryDetail: View {
+    let recap: WeeklyRecap
+    @State private var shareImage: Image?
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 14) {
+                RecapHero(recap: recap)
+                ForEach(recap.kids) { kid in
+                    RecapKidCard(kid: kid)
+                }
+                if let shareImage {
+                    ShareLink(
+                        item: shareImage,
+                        preview: SharePreview("Our week in BrightTime", image: shareImage)
+                    ) {
+                        Label("Share this report", systemImage: "square.and.arrow.up")
+                            .font(.headline)
+                            .foregroundStyle(AppTheme.onPrimary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(AppTheme.primary, in: Capsule())
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+        }
+        .background(AppTheme.background.ignoresSafeArea())
+        .navigationTitle(recap.title)
+        .navigationBarTitleDisplayMode(.inline)
+        .task(id: recap) {
+            let renderer = ImageRenderer(content: RecapShareCard(recap: recap))
+            renderer.scale = 3
+            shareImage = renderer.uiImage.map { Image(uiImage: $0) }
         }
     }
 }

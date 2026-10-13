@@ -51,7 +51,7 @@ enum DailyInsightsCatalog {
             id: "australia-social-media-minimum-age-2026",
             kind: .news,
             title: "Australia's under-16 social media rules are in effect",
-            summary: "Age-restricted platforms must take reasonable steps to prevent Australian children under 16 from holding accounts.",
+            summary: "Age-restricted platforms must take reasonable steps to prevent Australian kids under 16 from holding accounts.",
             sourceName: "Australian eSafety Commissioner",
             publishedAt: date("2026-03-31T12:00:00Z"),
             reviewedAt: date("2026-10-11T12:00:00Z"),

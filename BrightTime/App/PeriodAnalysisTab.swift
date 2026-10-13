@@ -466,10 +466,10 @@ struct PeriodAnalysisTab: View {
         let maxMinutes = max(rows.map(\.minutes).max() ?? 0, 1)
 
         return VStack(alignment: .leading, spacing: 12) {
-            CardTitle(title: "By child")
+            CardTitle(title: "By kid")
 
             if rows.isEmpty {
-                emptyMessage("Add a child to see their share.")
+                emptyMessage("Add a kid to see their share.")
             } else {
                 ForEach(rows) { row in
                     HStack(spacing: 10) {

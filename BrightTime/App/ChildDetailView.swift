@@ -68,7 +68,7 @@ struct ChildDetailView: View {
                     ContentUnavailableView(
                         "No Devices Yet",
                         systemImage: "display.2",
-                        description: Text("Add the phones, computers, TVs, and other screens this child uses.")
+                        description: Text("Add the phones, computers, TVs, and other screens this kid uses.")
                     )
 
                     Button("Add first device", systemImage: "plus.circle.fill") {

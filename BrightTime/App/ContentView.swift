@@ -151,7 +151,7 @@ struct ContentView: View {
                 }
             }
             .confirmationDialog(
-                "Archive this child?",
+                "Archive this kid?",
                 isPresented: Binding(
                     get: { childToArchive != nil },
                     set: { if !$0 { childToArchive = nil } }
@@ -403,11 +403,11 @@ struct ContentView: View {
             Text("No kids yet")
                 .font(.headline)
                 .foregroundStyle(AppTheme.primaryDeep)
-            Text("Add a child profile to start tracking healthy screen-time habits.")
+            Text("Add a kid profile to start tracking healthy screen-time habits.")
                 .font(.subheadline)
                 .foregroundStyle(AppTheme.textSecondary)
                 .multilineTextAlignment(.center)
-            Button("Add first child", systemImage: "plus.circle.fill") {
+            Button("Add first kid", systemImage: "plus.circle.fill") {
                 isAddingChild = true
             }
             .buttonStyle(.borderedProminent)

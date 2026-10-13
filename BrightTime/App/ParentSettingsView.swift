@@ -27,7 +27,7 @@ enum AppAppearance: String, CaseIterable, Identifiable {
     }
 }
 
-/// The Profile tab: the parent's profile, family features, preferences, security
+/// The Settings tab: the parent's profile, family features, preferences, security
 /// and account. Every change applies right away; only the name and photo have an
 /// edit screen with its own Save.
 struct ParentSettingsView: View {
@@ -64,12 +64,13 @@ struct ParentSettingsView: View {
                 preferencesSection
                 securitySection
                 childrenSection
+                reportsSection
                 accountSection
             }
             .contentMargins(.bottom, AppTheme.tabBarContentClearance, for: .scrollContent)
             .scrollContentBackground(.hidden)
             .background(AppTheme.background.ignoresSafeArea())
-            .navigationTitle("Profile")
+            .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.large)
             .toolbarBackground(AppTheme.background, for: .navigationBar)
             .sheet(isPresented: $isConfirmingSignOut) {
@@ -122,6 +123,8 @@ struct ParentSettingsView: View {
                 .padding(.vertical, 4)
             }
             .accessibilityIdentifier("profile-edit-link")
+        } header: {
+            Text("Profile")
         }
         .listRowBackground(AppTheme.surface)
     }
@@ -134,7 +137,7 @@ struct ParentSettingsView: View {
 
             if parent.notificationsEnabled {
                 Toggle(isOn: recapBinding) {
-                    settingLabel("Sunday recap", systemImage: "sparkles", tint: AppTheme.warning)
+                    settingLabel("Monday weekly report", systemImage: "sparkles", tint: AppTheme.warning)
                 }
                 .accessibilityIdentifier("settings-recap-toggle")
             }
@@ -195,6 +198,27 @@ struct ParentSettingsView: View {
             .accessibilityIdentifier("settings-kid-mode-link")
         } header: {
             Text("Family")
+        }
+        .listRowBackground(AppTheme.surface)
+    }
+
+    private var reportsSection: some View {
+        Section {
+            NavigationLink {
+                WeeklyReportHistoryView()
+            } label: {
+                LabeledContent {
+                    Text("Past weeks")
+                        .font(.footnote)
+                } label: {
+                    settingLabel("Weekly report history", systemImage: "clock.arrow.circlepath", tint: AppTheme.primary)
+                }
+            }
+            .accessibilityIdentifier("settings-weekly-report-history-link")
+        } header: {
+            Text("Reports")
+        } footer: {
+            Text("Completed Monday–Sunday reports remain available here.")
         }
         .listRowBackground(AppTheme.surface)
     }

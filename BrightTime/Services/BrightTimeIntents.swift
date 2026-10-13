@@ -8,7 +8,7 @@ import Foundation
 // MARK: - Entities
 
 struct ChildEntity: AppEntity {
-    static let typeDisplayRepresentation: TypeDisplayRepresentation = "Child"
+    static let typeDisplayRepresentation: TypeDisplayRepresentation = "Kid"
     static let defaultQuery = ChildEntityQuery()
 
     let id: UUID
@@ -93,7 +93,7 @@ enum BrightTimeIntentError: Error, CustomLocalizedStringResourceConvertible {
     var localizedStringResource: LocalizedStringResource {
         switch self {
         case .childNotFound:
-            "I couldn't find that child in BrightTime."
+            "I couldn't find that kid in BrightTime."
         case .noDevice(let name):
             "\(name) doesn't have a device yet. Add one in BrightTime first."
         case .noTimer(let name):
@@ -108,9 +108,9 @@ enum BrightTimeIntentError: Error, CustomLocalizedStringResourceConvertible {
 
 struct StartScreenTimerIntent: AppIntent, LiveActivityIntent {
     static let title: LocalizedStringResource = "Start Screen Timer"
-    static let description = IntentDescription("Starts a BrightTime screen timer for a child. The time is added to today's usage when it ends.")
+    static let description = IntentDescription("Starts a BrightTime screen timer for a kid. The time is added to today's usage when it ends.")
 
-    @Parameter(title: "Child", requestValueDialog: "Which child?")
+    @Parameter(title: "Kid", requestValueDialog: "Which kid?")
     var child: ChildEntity
 
     @Parameter(title: "Minutes", requestValueDialog: "For how many minutes?")
@@ -146,10 +146,10 @@ struct StartScreenTimerIntent: AppIntent, LiveActivityIntent {
 
 struct StopScreenTimerIntent: AppIntent, LiveActivityIntent {
     static let title: LocalizedStringResource = "Stop Screen Timer"
-    static let description = IntentDescription("Stops a child's running BrightTime timer and saves the time used so far.")
+    static let description = IntentDescription("Stops a kid's running BrightTime timer and saves the time used so far.")
     static let authenticationPolicy: IntentAuthenticationPolicy = .requiresAuthentication
 
-    @Parameter(title: "Child", requestValueDialog: "Whose timer?")
+    @Parameter(title: "Kid", requestValueDialog: "Whose timer?")
     var child: ChildEntity
 
     static var parameterSummary: some ParameterSummary {
@@ -176,9 +176,9 @@ struct StopScreenTimerIntent: AppIntent, LiveActivityIntent {
 
 struct TimeLeftIntent: AppIntent {
     static let title: LocalizedStringResource = "Screen Time Left"
-    static let description = IntentDescription("Tells you how much screen time a child has left today.")
+    static let description = IntentDescription("Tells you how much screen time a kid has left today.")
 
-    @Parameter(title: "Child", requestValueDialog: "Which child?")
+    @Parameter(title: "Kid", requestValueDialog: "Which kid?")
     var child: ChildEntity
 
     static var parameterSummary: some ParameterSummary {

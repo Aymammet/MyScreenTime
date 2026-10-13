@@ -11,12 +11,10 @@ struct ChildrenTab: View {
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @EnvironmentObject private var timerManager: ScreenTimerManager
     @AppStorage(AppCalendar.Keys.revision) private var calendarRevision = 0
     @State private var selectedChildID: UUID?
     @State private var period: AnalysisPeriod = .week
     @State private var childToEdit: ChildProfile?
-    @State private var childToDelete: ChildProfile?
 
     private var selectedChild: ChildProfile? {
         children.first { $0.id == selectedChildID } ?? children.first
@@ -61,23 +59,6 @@ struct ChildrenTab: View {
                 ChildFormView(parent: parent, child: childToEdit)
             }
         }
-        .alert(
-            "Delete child?",
-            isPresented: Binding(
-                get: { childToDelete != nil },
-                set: { if !$0 { childToDelete = nil } }
-            ),
-            presenting: childToDelete
-        ) { child in
-            Button("Delete \(child.name)", role: .destructive) {
-                delete(child)
-            }
-            Button("Cancel", role: .cancel) {
-                childToDelete = nil
-            }
-        } message: { child in
-            Text("This permanently deletes \(child.name), their personal devices, screen-time history, and time-bank activity. This cannot be undone.")
-        }
     }
 
     private var emptyCard: some View {
@@ -90,7 +71,7 @@ struct ChildrenTab: View {
             Text("No kids to show")
                 .font(.headline)
                 .foregroundStyle(AppTheme.primaryDeep)
-            Text("Add a child on the Home tab to see their limits, trends and devices here.")
+            Text("Add a kid on the Home tab to see their limits, trends and devices here.")
                 .font(.subheadline)
                 .foregroundStyle(AppTheme.textSecondary)
                 .multilineTextAlignment(.center)
@@ -165,25 +146,14 @@ struct ChildrenTab: View {
                 .overlay(AppTheme.cardBorder)
                 .padding(.vertical, 4)
 
-            HStack(spacing: 10) {
-                Button {
-                    childToEdit = child
-                } label: {
-                    Label("Edit child", systemImage: "pencil")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
-                .accessibilityIdentifier("children-edit-child-\(child.id.uuidString)")
-
-                Button(role: .destructive) {
-                    childToDelete = child
-                } label: {
-                    Label("Delete child", systemImage: "trash")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
-                .accessibilityIdentifier("children-delete-child-\(child.id.uuidString)")
+            Button {
+                childToEdit = child
+            } label: {
+                Label("Edit kid", systemImage: "pencil")
+                    .frame(maxWidth: .infinity)
             }
+            .buttonStyle(.bordered)
+            .accessibilityIdentifier("children-edit-child-\(child.id.uuidString)")
             .font(.footnote.bold())
         }
         .frame(maxWidth: .infinity)
@@ -198,27 +168,6 @@ struct ChildrenTab: View {
         case .reached: "Limit reached"
         case .exceeded: "\(TimeText.compact(summary.overMinutes)) over limit"
         }
-    }
-
-    private func delete(_ child: ChildProfile) {
-        // Stop the timer first so its notification and Live Activity are removed
-        // before SwiftData cascades the child's related records.
-        timerManager.stopTimer(
-            forChildID: child.id,
-            children: children,
-            devices: devices,
-            context: modelContext
-        )
-
-        selectedChildID = children.first { $0.id != child.id }?.id
-        modelContext.delete(child)
-
-        do {
-            try modelContext.save()
-        } catch {
-            modelContext.rollback()
-        }
-        childToDelete = nil
     }
 
     // MARK: - Limits
