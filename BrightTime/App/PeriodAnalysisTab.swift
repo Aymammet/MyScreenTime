@@ -32,11 +32,6 @@ struct PeriodAnalysisTab: View {
         offset == 0 ? .now : interval.end.addingTimeInterval(-1)
     }
 
-    private var countedInterval: DateInterval {
-        let endOfReferenceDay = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: referenceDate)) ?? interval.end
-        return DateInterval(start: interval.start, end: min(endOfReferenceDay, interval.end))
-    }
-
     private var childIDs: Set<UUID> {
         Set(children.map(\.id))
     }
@@ -108,14 +103,14 @@ struct PeriodAnalysisTab: View {
 
                 switch period {
                 case .week:
-                    dailyChartCard(days: days)
+                    kidDailyCharts
                 case .month:
                     streakCard(analysis: analysis, days: days)
                     heatmapCard(days: days)
                 }
 
                 byChildCard
-                byDeviceCard(analysis: analysis)
+                todayDeviceUsageCard
 
                 if period == .month {
                     highlightTiles(days: days)
@@ -160,15 +155,76 @@ struct PeriodAnalysisTab: View {
 
     // MARK: - Week chart
 
-    private func dailyChartCard(days allDays: [DayUsage]) -> some View {
+    private var kidDailyCharts: some View {
+        Group {
+            if children.isEmpty {
+                VStack(alignment: .leading, spacing: 12) {
+                    CardTitle(title: "Daily usage by kid")
+                    emptyMessage("Add a kid to see daily usage and limits.")
+                }
+                .brightCard()
+            } else {
+                ForEach(children) { child in
+                    kidDailyChartCard(child)
+                }
+            }
+        }
+    }
+
+    private func days(for child: ChildProfile) -> [DayUsage] {
+        var result: [DayUsage] = []
+        var day = interval.start
+        let lastVisibleDay = calendar.startOfDay(for: referenceDate)
+
+        while day < interval.end {
+            let minutes = day <= lastVisibleDay
+                ? UsageAggregator.totalMinutes(on: day, childID: child.id, sessions: sessions, calendar: calendar)
+                : nil
+            result.append(
+                DayUsage(
+                    date: day,
+                    minutes: minutes,
+                    limit: child.limitMinutes(on: day, calendar: calendar)
+                )
+            )
+            guard let next = calendar.date(byAdding: .day, value: 1, to: day) else { break }
+            day = next
+        }
+        return result
+    }
+
+    private func kidDailyChartCard(_ child: ChildProfile) -> some View {
+        let allDays = days(for: child)
         let selected = selectedDay.flatMap { date in allDays.first { calendar.isDate($0.date, inSameDayAs: date) } }
         let hasLimit = allDays.contains { $0.limit > 0 }
         let hasUsage = allDays.contains { ($0.minutes ?? 0) > 0 }
+        let total = allDays.compactMap(\.minutes).reduce(0, +)
 
         return VStack(alignment: .leading, spacing: 12) {
-            CardTitle(title: "Daily usage", detail: selectedDetail(selected) ?? (hasUsage ? "Tap a bar" : nil))
+            HStack(spacing: 10) {
+                ChildAvatarView(child: child, size: 34)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(child.name)
+                        .font(.headline)
+                        .foregroundStyle(AppTheme.primaryDeep)
+                    Text("Daily usage · \(TimeText.compact(total)) week total")
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.textSecondary)
+                }
+                Spacer(minLength: 8)
+                if let detail = selectedDetail(selected) {
+                    Text(detail)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .multilineTextAlignment(.trailing)
+                } else if hasUsage {
+                    Text("Tap a bar")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(AppTheme.textSecondary)
+                }
+            }
 
-            if hasUsage {
+            if hasUsage || hasLimit {
                 Chart {
                     ForEach(allDays) { day in
                         if let minutes = day.minutes {
@@ -190,8 +246,8 @@ struct PeriodAnalysisTab: View {
                                 series: .value("Series", "Limit")
                             )
                             .interpolationMethod(.stepCenter)
-                            .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [4, 4]))
-                            .foregroundStyle(AppTheme.textTertiary)
+                            .lineStyle(StrokeStyle(lineWidth: 2, dash: [6, 5]))
+                            .foregroundStyle(AppTheme.success)
                         }
                     }
                 }
@@ -216,10 +272,10 @@ struct PeriodAnalysisTab: View {
                 }
                 .chartXSelection(value: $selectedDay)
                 .frame(height: 190)
-                .accessibilityIdentifier("usage-trend-chart")
+                .accessibilityIdentifier("usage-trend-chart-\(child.id.uuidString)")
 
                 if hasLimit {
-                    legendRow
+                    kidChartLegend
                 }
             } else {
                 emptyMessage("No usage recorded this week.")
@@ -228,11 +284,18 @@ struct PeriodAnalysisTab: View {
         .brightCard()
     }
 
-    private var legendRow: some View {
-        HStack(spacing: 12) {
+    private var kidChartLegend: some View {
+        HStack(spacing: 10) {
             legendItem(color: AppTheme.primarySoft, text: "On track")
             legendItem(color: AppTheme.warning, text: "Near limit")
             legendItem(color: AppTheme.danger, text: "Over")
+            Spacer(minLength: 4)
+            HStack(spacing: 5) {
+                Capsule()
+                    .fill(AppTheme.success)
+                    .frame(width: 20, height: 2)
+                Text("Daily limit")
+            }
         }
         .font(.caption2.weight(.semibold))
         .foregroundStyle(AppTheme.textSecondary)
@@ -455,19 +518,24 @@ struct PeriodAnalysisTab: View {
     // MARK: - Breakdowns
 
     private var byChildCard: some View {
-        let counted = countedInterval
-        let rows = children
-            .map { child in
-                ChildShare(child: child, minutes: UsageAggregator.totalMinutes(in: counted, childIDs: [child.id], sessions: sessions))
-            }
-            .sorted { $0.minutes > $1.minutes }
-        let maxMinutes = max(rows.map(\.minutes).max() ?? 0, 1)
+        let rows = children.map { child in
+            let elapsedDays = days(for: child).filter { $0.minutes != nil }
+            let dayCount = max(elapsedDays.count, 1)
+            let averageMinutes = elapsedDays.reduce(0) { $0 + ($1.minutes ?? 0) } / dayCount
+            let averageLimit = elapsedDays.reduce(0) { $0 + $1.limit } / dayCount
+            return ChildAverage(
+                child: child,
+                minutes: averageMinutes,
+                limit: averageLimit
+            )
+        }
+        .sorted { $0.minutes > $1.minutes }
 
         return VStack(alignment: .leading, spacing: 12) {
-            CardTitle(title: "By kid")
+            CardTitle(title: "Daily average by kid", detail: period == .week ? "This week" : "This month")
 
             if rows.isEmpty {
-                emptyMessage("Add a kid to see their share.")
+                emptyMessage("Add a kid to see their daily average.")
             } else {
                 ForEach(rows) { row in
                     HStack(spacing: 10) {
@@ -476,15 +544,15 @@ struct PeriodAnalysisTab: View {
                             HStack {
                                 Text(row.child.name)
                                 Spacer()
-                                Text(TimeText.compact(row.minutes))
+                                Text(averageComparisonText(row))
                                     .contentTransition(.numericText())
                             }
                             .font(.subheadline.weight(.bold))
-                            .foregroundStyle(AppTheme.primaryDeep)
+                            .foregroundStyle(averageColor(row))
 
                             LimitBar(
-                                progress: Double(row.minutes) / Double(maxMinutes),
-                                color: row.child.color.color
+                                progress: row.limit > 0 ? Double(row.minutes) / Double(row.limit) : 0,
+                                color: averageColor(row)
                             )
                         }
                     }
@@ -495,51 +563,96 @@ struct PeriodAnalysisTab: View {
         .brightCard()
     }
 
-    private func byDeviceCard(analysis: PeriodAnalysis) -> some View {
-        let points = analysis.devicePoints
-        let total = max(points.reduce(0) { $0 + $1.minutes }, 1)
+    private func averageComparisonText(_ row: ChildAverage) -> String {
+        let usage = TimeText.compact(row.minutes)
+        guard row.limit > 0 else { return "\(usage) avg · no limit" }
+        return "\(usage) avg / \(TimeText.compact(row.limit)) limit"
+    }
+
+    private func averageColor(_ row: ChildAverage) -> Color {
+        guard row.limit > 0 else { return AppTheme.textSecondary }
+        if row.minutes > row.limit { return AppTheme.danger }
+        if row.minutes * 100 >= row.limit * 80 { return AppTheme.warning }
+        return AppTheme.success
+    }
+
+    private var todayDeviceUsageCard: some View {
+        let groups = children.map { child in
+            KidTodayDeviceGroup(
+                child: child,
+                rows: devices.compactMap { device in
+                    let minutes = UsageAggregator.totalMinutes(
+                        on: .now,
+                        childID: child.id,
+                        deviceID: device.id,
+                        sessions: sessions,
+                        calendar: calendar
+                    )
+                    return minutes > 0 ? KidTodayDeviceRow(device: device, minutes: minutes) : nil
+                }
+                .sorted { lhs, rhs in
+                    if lhs.minutes != rhs.minutes { return lhs.minutes > rhs.minutes }
+                    return lhs.device.name.localizedCaseInsensitiveCompare(rhs.device.name) == .orderedAscending
+                }
+            )
+        }
 
         return VStack(alignment: .leading, spacing: 12) {
-            CardTitle(title: "By device", detail: points.isEmpty ? nil : TimeText.compact(analysis.currentMinutes))
+            CardTitle(title: "Kid device usage", detail: "Today")
 
-            if points.isEmpty {
-                emptyMessage("Device usage appears after a session is recorded.")
+            if groups.isEmpty {
+                emptyMessage("Add a kid to see their device usage.")
             } else {
-                GeometryReader { proxy in
-                    let spacing: CGFloat = 2
-                    let available = proxy.size.width - spacing * CGFloat(points.count - 1)
-                    HStack(spacing: spacing) {
-                        ForEach(points) { point in
-                            Rectangle()
-                                .fill(AppTheme.color(forDeviceID: point.deviceID))
-                                .frame(width: max(available * CGFloat(point.minutes) / CGFloat(total), 2))
+                ForEach(groups) { group in
+                    VStack(alignment: .leading, spacing: 9) {
+                        HStack(spacing: 9) {
+                            ChildAvatarView(child: group.child, size: 30)
+                            Text(group.child.name)
+                                .font(.subheadline.weight(.bold))
+                                .foregroundStyle(AppTheme.primaryDeep)
+                            Spacer()
+                            Text(TimeText.compact(group.totalMinutes))
+                                .font(.subheadline.weight(.bold))
+                                .foregroundStyle(group.totalMinutes > group.child.limitMinutes(on: .now, calendar: calendar) ? AppTheme.dangerText : AppTheme.primary)
                         }
-                    }
-                }
-                .frame(height: 12)
-                .clipShape(Capsule())
-                .accessibilityHidden(true)
 
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 130), spacing: 8, alignment: .leading)], alignment: .leading, spacing: 6) {
-                    ForEach(points) { point in
-                        HStack(spacing: 6) {
-                            Circle()
-                                .fill(AppTheme.color(forDeviceID: point.deviceID))
-                                .frame(width: 8, height: 8)
-                            Text(point.name)
-                                .lineLimit(1)
-                            Text("\(Int((Double(point.minutes) / Double(total) * 100).rounded()))%")
+                        if group.rows.isEmpty {
+                            Text("No device usage recorded today.")
+                                .font(.caption)
                                 .foregroundStyle(AppTheme.textSecondary)
+                                .padding(.leading, 39)
+                        } else {
+                            ForEach(group.rows) { row in
+                                HStack(spacing: 9) {
+                                    Image(systemName: row.device.kind.systemImage)
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(AppTheme.color(forDeviceID: row.device.id))
+                                        .frame(width: 28, height: 28)
+                                        .background(AppTheme.color(forDeviceID: row.device.id).opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
+                                    Text(row.device.name)
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(AppTheme.primaryDeep)
+                                        .lineLimit(1)
+                                    Spacer()
+                                    Text(TimeText.compact(row.minutes))
+                                        .font(.subheadline.weight(.bold))
+                                        .foregroundStyle(AppTheme.textSecondary)
+                                }
+                                .padding(.leading, 39)
+                                .accessibilityElement(children: .combine)
+                            }
                         }
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(AppTheme.primaryDeep)
-                        .accessibilityElement(children: .combine)
+                    }
+                    .padding(.vertical, 2)
+
+                    if group.id != groups.last?.id {
+                        Divider().overlay(AppTheme.cardBorder)
                     }
                 }
-                .accessibilityIdentifier("device-breakdown-chart")
             }
         }
         .brightCard()
+        .accessibilityIdentifier("kid-device-usage-today")
     }
 
     private func emptyMessage(_ text: String) -> some View {
@@ -557,10 +670,26 @@ private struct WeekdayHeader: Identifiable {
     var id: String { "weekday-\(index)" }
 }
 
-private struct ChildShare: Identifiable {
+private struct ChildAverage: Identifiable {
     let child: ChildProfile
     let minutes: Int
+    let limit: Int
     var id: UUID { child.id }
+}
+
+private struct KidTodayDeviceGroup: Identifiable {
+    let child: ChildProfile
+    let rows: [KidTodayDeviceRow]
+
+    var id: UUID { child.id }
+    var totalMinutes: Int { rows.reduce(0) { $0 + $1.minutes } }
+}
+
+private struct KidTodayDeviceRow: Identifiable {
+    let device: Device
+    let minutes: Int
+
+    var id: UUID { device.id }
 }
 
 /// One day of family usage. `minutes` is nil for days that haven't happened yet.
