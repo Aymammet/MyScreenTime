@@ -42,8 +42,6 @@ struct ChildrenTab: View {
                         .transition(.opacity)
                     }
                 }
-
-                DailyInsightsCard()
             }
             .padding(.horizontal, 16)
             .padding(.top, 4)

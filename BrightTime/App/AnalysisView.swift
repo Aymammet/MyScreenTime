@@ -101,8 +101,8 @@ struct InsightsTab: View {
 
 // MARK: - Parent Brief
 
-/// Reviewed screen-time news, research, and guidance. Home can request one compact
-/// story; analysis tabs show the full briefing.
+/// Reviewed screen-time news, research, and guidance, shown on Home one story at
+/// a time. Stories rotate every 15 seconds; swipe or tap a dot to move yourself.
 struct DailyInsightsCard: View {
     private enum LoadState {
         case loading
@@ -110,8 +110,15 @@ struct DailyInsightsCard: View {
         case unavailable
     }
 
+    /// How long each story stays before the next one slides in.
+    static let rotationInterval: Duration = .seconds(15)
+
     @State private var state: LoadState = .loading
-    var maximumItems: Int? = nil
+    @State private var currentIndex = 0
+    /// +1 when moving forward, -1 when going back, so the slide runs the right way.
+    @State private var direction = 1
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverEnabled
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -159,12 +166,7 @@ struct DailyInsightsCard: View {
                     .accessibilityElement(children: .combine)
                     .accessibilityIdentifier("daily-insights-empty")
                 } else {
-                    ForEach(Array(items.prefix(maximumItems ?? items.count))) { insight in
-                        insightRow(insight)
-                        if insight.id != Array(items.prefix(maximumItems ?? items.count)).last?.id {
-                            Divider()
-                        }
-                    }
+                    carousel(items)
                 }
             case .unavailable:
                 VStack(alignment: .leading, spacing: 6) {
@@ -179,9 +181,7 @@ struct DailyInsightsCard: View {
                 .accessibilityIdentifier("daily-insights-unavailable")
             }
 
-            Text(maximumItems == nil
-                 ? "Briefs show their source, region, and publication date. They are not measurements of your kids."
-                 : "Find more research and news in Insights.")
+            Text("Briefs show their source, region, and publication date. They are not measurements of your kids.")
                 .font(.caption2)
                 .foregroundStyle(AppTheme.textTertiary)
         }
@@ -191,10 +191,102 @@ struct DailyInsightsCard: View {
 
     private func load() {
         do {
-            state = .ready(try DailyInsightsCatalog.load())
+            let items = try DailyInsightsCatalog.load()
+            state = .ready(items)
+            // Start on a different story each day, so Home doesn't always open
+            // on the same one.
+            if !items.isEmpty {
+                let day = Calendar.current.ordinality(of: .day, in: .era, for: .now) ?? 0
+                currentIndex = day % items.count
+            }
         } catch {
             state = .unavailable
         }
+    }
+
+    // MARK: - Carousel
+
+    @ViewBuilder
+    private func carousel(_ items: [DailyInsight]) -> some View {
+        let index = min(currentIndex, items.count - 1)
+        let insight = items[index]
+
+        VStack(alignment: .leading, spacing: 12) {
+            ZStack(alignment: .topLeading) {
+                insightRow(insight)
+                    .id(insight.id)
+                    .transition(slideTransition)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .clipped()
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 24)
+                    .onEnded { value in
+                        guard abs(value.translation.width) > abs(value.translation.height) else { return }
+                        step(value.translation.width < 0 ? 1 : -1, count: items.count)
+                    }
+            )
+            .accessibilityElement(children: .contain)
+            .accessibilityAdjustableAction { adjustment in
+                switch adjustment {
+                case .increment: step(1, count: items.count)
+                case .decrement: step(-1, count: items.count)
+                @unknown default: break
+                }
+            }
+
+            if items.count > 1 {
+                pageDots(count: items.count, current: index)
+            }
+        }
+        // Restarts the 15-second wait whenever the story changes, so a swipe
+        // gives the reader a full 15 seconds on the new one.
+        .task(id: index) {
+            guard items.count > 1, !voiceOverEnabled else { return }
+            try? await Task.sleep(for: Self.rotationInterval)
+            guard !Task.isCancelled else { return }
+            step(1, count: items.count)
+        }
+    }
+
+    private var slideTransition: AnyTransition {
+        if reduceMotion { return .opacity }
+        return .asymmetric(
+            insertion: .move(edge: direction > 0 ? .trailing : .leading).combined(with: .opacity),
+            removal: .move(edge: direction > 0 ? .leading : .trailing).combined(with: .opacity)
+        )
+    }
+
+    private func step(_ delta: Int, count: Int) {
+        guard count > 1 else { return }
+        direction = delta >= 0 ? 1 : -1
+        withAnimation(reduceMotion ? .easeInOut(duration: 0.2) : .spring(response: 0.45, dampingFraction: 0.9)) {
+            currentIndex = (min(currentIndex, count - 1) + delta + count) % count
+        }
+    }
+
+    private func pageDots(count: Int, current: Int) -> some View {
+        HStack(spacing: 6) {
+            ForEach(0..<count, id: \.self) { dot in
+                Button {
+                    guard dot != current else { return }
+                    step(dot - current, count: count)
+                } label: {
+                    Capsule()
+                        .fill(dot == current ? AppTheme.primary : AppTheme.textTertiary.opacity(0.45))
+                        .frame(width: dot == current ? 18 : 6, height: 6)
+                        .frame(height: 20)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Story \(dot + 1) of \(count)")
+                .accessibilityAddTraits(dot == current ? .isSelected : [])
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .animation(AppTheme.spring, value: current)
+        .accessibilityIdentifier("daily-insights-dots")
     }
 
     private func insightRow(_ insight: DailyInsight) -> some View {

@@ -89,8 +89,6 @@ struct DevicesTab: View {
 
                     weekComparisonCard
                 }
-
-                DailyInsightsCard()
             }
             .padding(.horizontal, 16)
             .padding(.top, 4)

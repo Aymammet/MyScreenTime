@@ -120,8 +120,6 @@ struct PeriodAnalysisTab: View {
                 if period == .month {
                     highlightTiles(days: days)
                 }
-
-                DailyInsightsCard()
             }
             .padding(.horizontal, 16)
             .padding(.top, 4)

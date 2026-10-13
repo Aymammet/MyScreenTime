@@ -79,6 +79,94 @@ enum DailyInsightsCatalog {
             reviewedAt: date("2026-10-11T12:00:00Z"),
             region: "United States · Ages 13–17",
             sourceURL: URL(string: "https://www.pewresearch.org/internet/2025/04/22/teens-social-media-and-mental-health/")!
+        ),
+        DailyInsight(
+            id: "jama-addictive-use-2025",
+            kind: .statistic,
+            title: "How kids use screens matters more than how long",
+            summary: "A 4-year study of 4,285 U.S. youths linked hard-to-control phone or social media use to about twice the risk of suicidal behaviour, and gaming to about 1.5 times. Total screen time was not linked.",
+            sourceName: "JAMA",
+            publishedAt: date("2025-06-18T12:00:00Z"),
+            reviewedAt: date("2026-10-12T12:00:00Z"),
+            region: "United States · Ages 9–14",
+            sourceURL: URL(string: "https://jamanetwork.com/journals/jama/fullarticle/2835481")!
+        ),
+        DailyInsight(
+            id: "jama-myopia-screen-time-2025",
+            kind: .statistic,
+            title: "Each extra hour of screens a day raises myopia odds by 21%",
+            summary: "A review of 45 studies with 335,524 young people found little added risk under one hour a day. At four hours, the odds of nearsightedness nearly doubled.",
+            sourceName: "JAMA Network Open",
+            publishedAt: date("2025-02-21T12:00:00Z"),
+            reviewedAt: date("2026-10-12T12:00:00Z"),
+            region: "Global · Children & young adults",
+            sourceURL: URL(string: "https://jamanetwork.com/journals/jamanetworkopen/fullarticle/2830598")!
+        ),
+        DailyInsight(
+            id: "common-sense-census-2025",
+            kind: .statistic,
+            title: "Young kids' gaming time is up 65% since 2020",
+            summary: "Kids 8 and under average about 2.5 hours of screens a day. 40% have their own tablet by age 2, and short videos on TikTok and YouTube Shorts are on the rise.",
+            sourceName: "Common Sense Media",
+            publishedAt: date("2025-02-26T12:00:00Z"),
+            reviewedAt: date("2026-10-12T12:00:00Z"),
+            region: "United States · Ages 0–8",
+            sourceURL: URL(string: "https://www.commonsensemedia.org/press-releases/digital-childhood-starts-at-age-two-landmark-study-shows-evolution-of-young-childrens-media-use")!
+        ),
+        DailyInsight(
+            id: "pew-teens-youtube-2024",
+            kind: .statistic,
+            title: "73% of teens watch YouTube every day",
+            summary: "15% say they're on it almost constantly. Nearly half of teens (46%) say they're online almost constantly, up from 24% a decade earlier.",
+            sourceName: "Pew Research Center",
+            publishedAt: date("2024-12-12T12:00:00Z"),
+            reviewedAt: date("2026-10-12T12:00:00Z"),
+            region: "United States · Ages 13–17",
+            sourceURL: URL(string: "https://www.pewresearch.org/internet/2024/12/12/teens-social-media-and-technology-2024/")!
+        ),
+        DailyInsight(
+            id: "otago-screens-in-bed-2024",
+            kind: .statistic,
+            title: "Screens in bed cost kids sleep, gaming most of all",
+            summary: "Teens who used screens once in bed fell asleep about 30 minutes later. Each extra 10 minutes of gaming or multitasking in bed cut about 10 minutes of sleep. Screens before bed mattered less.",
+            sourceName: "University of Otago · JAMA Pediatrics",
+            publishedAt: date("2024-09-04T12:00:00Z"),
+            reviewedAt: date("2026-10-12T12:00:00Z"),
+            region: "New Zealand · Ages 11–14",
+            sourceURL: URL(string: "https://www.otago.ac.nz/news/newsroom/keep-devices-out-of-bed-for-better-sleep-study")!
+        ),
+        DailyInsight(
+            id: "who-gaming-disorder",
+            kind: .guidance,
+            title: "When gaming becomes a disorder",
+            summary: "WHO looks for three signs lasting about 12 months: losing control over gaming, putting it ahead of other activities, and carrying on despite harm. Only a small share of gamers are affected.",
+            sourceName: "World Health Organization",
+            publishedAt: date("2020-10-22T12:00:00Z"),
+            reviewedAt: date("2026-10-12T12:00:00Z"),
+            region: "Global · Gamers",
+            sourceURL: URL(string: "https://www.who.int/news-room/q-a-detail/gaming-disorder")!
+        ),
+        DailyInsight(
+            id: "who-under-five-2019",
+            kind: .guidance,
+            title: "No screens for babies, at most an hour a day for ages 2 to 4",
+            summary: "WHO advises no screen time before age 1 and no more than 1 hour a day for ages 2 to 4, with less being better. When kids sit still, reading and storytelling with a caregiver are encouraged.",
+            sourceName: "World Health Organization",
+            publishedAt: date("2019-04-24T12:00:00Z"),
+            reviewedAt: date("2026-10-12T12:00:00Z"),
+            region: "Global · Under 5",
+            sourceURL: URL(string: "https://www.who.int/news/item/24-04-2019-to-grow-up-healthy-children-need-to-sit-less-and-play-more")!
+        ),
+        DailyInsight(
+            id: "canada-24-hour-guidelines",
+            kind: .guidance,
+            title: "Canada: no more than 2 hours of fun screen time a day",
+            summary: "Canada's 24-hour movement guidelines for ages 5 to 17 pair that limit with at least 60 minutes of active play and 9 to 11 hours of sleep for ages 5 to 13.",
+            sourceName: "Canadian Society for Exercise Physiology",
+            publishedAt: date("2016-06-15T12:00:00Z"),
+            reviewedAt: date("2026-10-12T12:00:00Z"),
+            region: "Canada · Ages 5–17",
+            sourceURL: URL(string: "https://csepguidelines.ca/guidelines/children-youth/")!
         )
     ]
 

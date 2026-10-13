@@ -109,7 +109,7 @@ struct ContentView: View {
                             .padding(.top, 8)
                     }
 
-                    DailyInsightsCard(maximumItems: 1)
+                    DailyInsightsCard()
                         .padding(.top, 8)
                 }
                 .padding(.horizontal, 16)
