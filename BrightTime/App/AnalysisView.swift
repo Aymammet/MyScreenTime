@@ -16,7 +16,7 @@ enum AnalysisDestination: String, CaseIterable, Identifiable {
         case .insights: "chart.bar.fill"
         case .children: "person.2.fill"
         case .devices: "ipad.and.iphone"
-        case .profile: "person.crop.circle.fill"
+        case .profile: "gearshape.fill"
         }
     }
 }
