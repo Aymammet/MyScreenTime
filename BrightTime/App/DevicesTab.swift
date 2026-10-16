@@ -2,8 +2,8 @@ import Charts
 import SwiftData
 import SwiftUI
 
-/// Devices as a two-column grid. Each device keeps its own color everywhere, shows
-/// today's time with a 7-day sparkline, and opens a detail page on tap.
+/// One clear weekly chart per device. Cards stay full-width so weekday totals,
+/// averages and ownership are easy to scan without opening each device.
 struct DevicesTab: View {
     let children: [ChildProfile]
     let devices: [Device]
@@ -72,10 +72,7 @@ struct DevicesTab: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .brightCard()
                 } else {
-                    LazyVGrid(
-                        columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)],
-                        spacing: 10
-                    ) {
+                    LazyVStack(spacing: 12) {
                         ForEach(filteredDevices) { device in
                             NavigationLink {
                                 DeviceDetailView(device: device, children: children, sessions: sessions)
@@ -87,8 +84,6 @@ struct DevicesTab: View {
                             .transition(.opacity.combined(with: .scale(scale: 0.95)))
                         }
                     }
-
-                    weekComparisonCard
                 }
             }
             .padding(.horizontal, 16)
@@ -125,101 +120,101 @@ struct DevicesTab: View {
 
     private func deviceCard(_ device: Device) -> some View {
         let color = AppTheme.color(forDeviceID: device.id)
-        let today = UsageAggregator.totalMinutes(on: .now, deviceID: device.id, sessions: sessions)
-        let average = DeviceStats.priorDailyAverage(for: device, sessions: sessions, dayCount: 7)
-        let trend = DeviceStats.lastSevenDays(for: device, sessions: sessions)
+        let week = DeviceStats.currentWeek(for: device, sessions: sessions)
 
-        return VStack(alignment: .leading, spacing: 3) {
-            HStack(alignment: .top) {
+        return VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 11) {
                 Image(systemName: device.kind.systemImage)
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.system(size: 18, weight: .semibold))
                     .foregroundStyle(color)
-                    .frame(width: 36, height: 36)
-                    .background(color.opacity(0.13), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
-                Spacer(minLength: 4)
+                    .frame(width: 42, height: 42)
+                    .background(color.opacity(0.13), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(device.name)
+                        .font(.headline)
+                        .foregroundStyle(AppTheme.primaryDeep)
+                        .lineLimit(1)
+                    Text(device.isShared ? "Shared household device" : "Used by \(device.child?.name ?? "Unassigned")")
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .lineLimit(1)
+                }
+
+                Spacer(minLength: 8)
+
                 if device.isShared {
                     BrightChip(text: "Shared")
                 }
+
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(AppTheme.textTertiary)
             }
-            .padding(.bottom, 6)
 
-            Text(device.name)
-                .font(.subheadline.weight(.bold))
-                .foregroundStyle(AppTheme.primaryDeep)
-                .lineLimit(1)
-
-            Text(TimeText.compact(today))
-                .font(.system(.title3, design: .rounded).weight(.bold))
-                .foregroundStyle(AppTheme.primaryDeep)
-                .contentTransition(.numericText())
-
-            Text("today · avg \(TimeText.compact(average))")
-                .font(.caption2.weight(.medium))
-                .foregroundStyle(AppTheme.textSecondary)
-                .lineLimit(1)
-
-            Chart(trend) { point in
-                AreaMark(
-                    x: .value("Day", point.date, unit: .day),
-                    y: .value("Minutes", point.minutes)
-                )
-                .interpolationMethod(.catmullRom)
-                .foregroundStyle(
-                    LinearGradient(colors: [color.opacity(0.22), color.opacity(0)], startPoint: .top, endPoint: .bottom)
-                )
-
-                LineMark(
-                    x: .value("Day", point.date, unit: .day),
-                    y: .value("Minutes", point.minutes)
-                )
-                .interpolationMethod(.catmullRom)
-                .foregroundStyle(color)
-                .lineStyle(StrokeStyle(lineWidth: 2.2, lineCap: .round, lineJoin: .round))
+            HStack(spacing: 8) {
+                weeklyMetric("This week", value: TimeText.compact(week.totalMinutes), color: color)
+                weeklyMetric("Daily average", value: TimeText.compact(week.averageMinutes), color: AppTheme.primaryDeep)
             }
-            .chartXAxis(.hidden)
-            .chartYAxis(.hidden)
-            .frame(height: 30)
-            .padding(.top, 6)
-            .accessibilityHidden(true)
-        }
-        .brightCard(padding: 12)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(device.name)
-        .accessibilityValue("\(TimeText.compact(today)) today, \(TimeText.compact(average)) daily average\(device.isShared ? ", shared" : "")")
-    }
 
-    // MARK: - Week vs last
+            VStack(alignment: .leading, spacing: 8) {
+                CardTitle(title: "Weekly usage", detail: "Daily totals")
 
-    private var weekComparisonCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            CardTitle(title: "This week vs last", detail: "per device")
-
-            ForEach(filteredDevices) { device in
-                let change = DeviceStats.weekAnalysis(for: device, children: children, sessions: sessions).changePercent
-
-                HStack(spacing: 8) {
-                    Circle()
-                        .fill(AppTheme.color(forDeviceID: device.id))
-                        .frame(width: 8, height: 8)
-                    Text(device.name)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(AppTheme.primaryDeep)
-                        .lineLimit(1)
-                    Spacer()
-                    Text(changeText(change))
-                        .font(.subheadline.weight(.bold))
-                        .foregroundStyle(TimeText.changeColor(change))
+                Chart(week.points) { point in
+                    BarMark(
+                        x: .value("Day", point.date, unit: .day),
+                        y: .value("Minutes", point.minutes)
+                    )
+                    .foregroundStyle(AppCalendar.day.isDateInToday(point.date) ? color : color.opacity(0.62))
+                    .cornerRadius(6)
                 }
-                .accessibilityElement(children: .combine)
+                .chartXScale(domain: week.interval.start...week.interval.end)
+                .chartXAxis {
+                    AxisMarks(values: .stride(by: .day)) { _ in
+                        AxisValueLabel(format: .dateTime.weekday(.narrow), centered: true)
+                            .foregroundStyle(AppTheme.textSecondary)
+                    }
+                }
+                .chartYAxis {
+                    AxisMarks(position: .leading, values: .automatic(desiredCount: 3)) { value in
+                        AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [3]))
+                            .foregroundStyle(AppTheme.cardBorder)
+                        AxisValueLabel {
+                            if let minutes = value.as(Int.self) {
+                                Text(axisTime(minutes))
+                                    .font(.caption2)
+                                    .foregroundStyle(AppTheme.textTertiary)
+                            }
+                        }
+                    }
+                }
+                .frame(height: 180)
+                .accessibilityLabel("\(device.name) weekly usage")
+                .accessibilityValue("\(TimeText.compact(week.totalMinutes)) total, \(TimeText.compact(week.averageMinutes)) daily average")
+                .accessibilityIdentifier("device-week-chart-\(device.id.uuidString)")
             }
         }
         .brightCard()
     }
 
-    private func changeText(_ change: Int?) -> String {
-        guard let change else { return "No data last week" }
-        if change == 0 { return "No change" }
-        return change > 0 ? "↑ \(change)%" : "↓ \(abs(change))%"
+    private func weeklyMetric(_ label: String, value: String, color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(label)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(AppTheme.textSecondary)
+            Text(value)
+                .font(.system(.title3, design: .rounded).weight(.bold))
+                .foregroundStyle(color)
+                .contentTransition(.numericText())
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(11)
+        .background(AppTheme.surfaceMuted, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+    }
+
+    private func axisTime(_ minutes: Int) -> String {
+        if minutes >= 60, minutes.isMultiple(of: 60) { return "\(minutes / 60)h" }
+        return "\(minutes)m"
     }
 }
 
@@ -370,7 +365,61 @@ struct DeviceTrendPoint: Identifiable {
     var id: Date { date }
 }
 
+struct DeviceWeekSummary {
+    let interval: DateInterval
+    let points: [DeviceTrendPoint]
+    let totalMinutes: Int
+    let averageMinutes: Int
+}
+
 enum DeviceStats {
+    static func currentWeek(
+        for device: Device,
+        sessions: [UsageSession],
+        now: Date = .now,
+        calendar: Calendar = AppCalendar.day
+    ) -> DeviceWeekSummary {
+        guard let interval = calendar.dateInterval(of: .weekOfYear, for: now) else {
+            let start = calendar.startOfDay(for: now)
+            let end = calendar.date(byAdding: .day, value: 7, to: start) ?? start.addingTimeInterval(7 * 86_400)
+            return DeviceWeekSummary(
+                interval: DateInterval(start: start, end: end),
+                points: [],
+                totalMinutes: 0,
+                averageMinutes: 0
+            )
+        }
+
+        let today = calendar.startOfDay(for: now)
+        var day = interval.start
+        var points: [DeviceTrendPoint] = []
+
+        while day < interval.end {
+            points.append(
+                DeviceTrendPoint(
+                    date: day,
+                    minutes: UsageAggregator.totalMinutes(
+                        on: day,
+                        deviceID: device.id,
+                        sessions: sessions,
+                        calendar: calendar
+                    )
+                )
+            )
+            guard let next = calendar.date(byAdding: .day, value: 1, to: day) else { break }
+            day = next
+        }
+
+        let elapsed = points.filter { $0.date <= today }
+        let total = elapsed.reduce(0) { $0 + $1.minutes }
+        return DeviceWeekSummary(
+            interval: interval,
+            points: points,
+            totalMinutes: total,
+            averageMinutes: elapsed.isEmpty ? 0 : total / elapsed.count
+        )
+    }
+
     static func analysis(
         for device: Device,
         period: AnalysisPeriod,

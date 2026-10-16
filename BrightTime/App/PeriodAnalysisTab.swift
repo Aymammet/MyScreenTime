@@ -520,33 +520,18 @@ struct PeriodAnalysisTab: View {
     // MARK: - Breakdowns
 
     private var byChildCard: some View {
-        let previous: DateInterval = {
-            let start = calendar.date(byAdding: period.calendarComponent, value: -1, to: interval.start) ?? interval.start
-            return DateInterval(start: start, end: interval.start)
-        }()
-        let previousDayCount = max(calendar.dateComponents([.day], from: previous.start, to: previous.end).day ?? 1, 1)
-
         let rows = children.map { child in
             let elapsed = days(for: child).compactMap { day in day.minutes.map { (minutes: $0, limit: day.limit) } }
             let dayCount = max(elapsed.count, 1)
-            let previousTotal = UsageAggregator.totalMinutes(in: previous, childIDs: [child.id], sessions: sessions)
             return ChildAverage(
                 child: child,
                 minutes: elapsed.reduce(0) { $0 + $1.minutes } / dayCount,
-                limit: elapsed.reduce(0) { $0 + $1.limit } / dayCount,
-                lightest: elapsed.map { $0.minutes }.min() ?? 0,
-                busiest: elapsed.map { $0.minutes }.max() ?? 0,
-                daysCounted: elapsed.count,
-                previousMinutes: previousTotal > 0 ? previousTotal / previousDayCount : nil
+                limit: elapsed.reduce(0) { $0 + $1.limit } / dayCount
             )
         }
         .sorted { $0.minutes > $1.minutes }
 
-        // One shared scale, so kids can be compared fairly.
-        let scaleMax = max(rows.map { max($0.busiest, $0.limit, $0.minutes) }.max() ?? 0, 60)
-        let comparisonLabel = period == .week ? "vs last week" : "vs last month"
-
-        return VStack(alignment: .leading, spacing: 14) {
+        return VStack(alignment: .leading, spacing: 10) {
             CardTitle(title: "Daily average by kid", detail: period == .week ? "This week" : "This month")
 
             if rows.isEmpty {
@@ -556,12 +541,9 @@ struct PeriodAnalysisTab: View {
                     if index > 0 { Divider().overlay(AppTheme.cardBorder) }
                     AverageRangeRow(
                         row: row,
-                        scaleMax: Double(scaleMax) * 1.08,
-                        color: averageColor(row),
-                        comparisonLabel: comparisonLabel
+                        color: averageColor(row)
                     )
                 }
-                AverageRangeLegend()
             }
         }
         .brightCard()
@@ -675,11 +657,6 @@ private struct ChildAverage: Identifiable {
     let minutes: Int
     /// Average daily limit over the same days.
     let limit: Int
-    let lightest: Int
-    let busiest: Int
-    let daysCounted: Int
-    /// Average per day in the previous week or month; nil when nothing was logged.
-    let previousMinutes: Int?
     var id: UUID { child.id }
 
     enum Status { case over, close, within, noLimit }
@@ -692,38 +669,36 @@ private struct ChildAverage: Identifiable {
     }
 }
 
-/// One kid in "Daily average by kid": the average as a dot, the lightest to
-/// busiest day as a line through it, and the limit as a tick, on a scale shared
-/// by every kid in the card.
+/// One kid in "Daily average by kid". The full track is that kid's own daily
+/// limit. Only overtime extends beyond it, as a striped red segment.
 private struct AverageRangeRow: View {
     let row: ChildAverage
-    let scaleMax: Double
     let color: Color
-    let comparisonLabel: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
-                ChildAvatarView(child: row.child, size: 26)
+                ChildAvatarView(child: row.child, size: 24)
                 Text(row.child.name)
                     .font(.subheadline.weight(.bold))
                     .foregroundStyle(AppTheme.primaryDeep)
                     .lineLimit(1)
-                statusChip
                 Spacer(minLength: 4)
-                Text(TimeText.compact(row.minutes))
-                    .font(.subheadline.weight(.heavy).monospacedDigit())
-                    .foregroundStyle(row.status == .noLimit ? AppTheme.primaryDeep : color)
-                    .contentTransition(.numericText())
+                statusChip
             }
 
-            track
-                .frame(height: row.limit > 0 ? 44 : 36)
+            HStack(alignment: .firstTextBaseline) {
+                Text(TimeText.compact(row.minutes))
+                    .foregroundStyle(row.status == .noLimit ? AppTheme.primaryDeep : color)
+                Spacer()
+                Text(row.limit > 0 ? TimeText.compact(row.limit) : "No limit")
+                    .foregroundStyle(AppTheme.textSecondary)
+            }
+            .font(.subheadline.weight(.bold).monospacedDigit())
+            .contentTransition(.numericText())
 
-            caption
-                .font(.caption)
-                .foregroundStyle(AppTheme.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
+            track
+                .frame(height: 14)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityText)
@@ -732,75 +707,39 @@ private struct AverageRangeRow: View {
     private var track: some View {
         GeometryReader { proxy in
             let width = proxy.size.width
-            let x = { (minutes: Int) -> CGFloat in
-                min(max(CGFloat(Double(minutes) / scaleMax) * width, 0), width)
-            }
-            let barTop: CGFloat = 24
-            let barMid = barTop + 6
+            let hasLimit = row.limit > 0
+            let overMinutes = hasLimit ? max(row.minutes - row.limit, 0) : 0
+            let requestedOverflow = hasLimit
+                ? width * CGFloat(Double(overMinutes) / Double(max(row.limit, 1)))
+                : 0
+            let overflowWidth = overMinutes > 0
+                ? min(max(requestedOverflow, 30), width * 0.28)
+                : 0
+            let limitWidth = max(width - overflowWidth, 1)
+            let progress = hasLimit
+                ? min(max(CGFloat(row.minutes) / CGFloat(row.limit), 0), 1)
+                : 0
+            let fillWidth = row.minutes > 0 ? max(limitWidth * progress, 5) : 0
+            let barHeight: CGFloat = 14
 
             ZStack(alignment: .topLeading) {
                 Capsule()
                     .fill(AppTheme.surfaceMuted)
-                    .frame(width: width, height: 12)
-                    .offset(y: barTop)
+                    .frame(width: limitWidth, height: barHeight)
 
-                if row.limit > 0 {
+                if fillWidth > 0 {
                     Capsule()
-                        .fill(AppTheme.primary.opacity(0.22))
-                        .frame(width: x(row.limit), height: 12)
-                        .offset(y: barTop)
+                        .fill(color)
+                        .frame(width: fillWidth, height: barHeight)
                 }
 
-                if row.daysCounted > 1, row.busiest > row.lightest {
-                    Capsule()
-                        .fill(color.opacity(0.6))
-                        .frame(width: max(x(row.busiest) - x(row.lightest), 3), height: 3)
-                        .offset(x: x(row.lightest), y: barMid - 1.5)
+                if overMinutes > 0 {
+                    StripedOvertimeBar(color: AppTheme.danger)
+                        .frame(width: overflowWidth + 7, height: barHeight)
+                        .offset(x: limitWidth - 7)
                 }
-
-                if row.limit > 0 {
-                    // The limit: a bright line from the tag down through the bar.
-                    RoundedRectangle(cornerRadius: 1.5)
-                        .fill(AppTheme.primaryDeep)
-                        .frame(width: 3, height: 26)
-                        .offset(x: x(row.limit) - 1.5, y: 16)
-
-                    limitTag
-                        .position(x: tagCenter(limitX: x(row.limit), width: width), y: 8.5)
-                }
-
-                Circle()
-                    .fill(color)
-                    .frame(width: 15, height: 15)
-                    .overlay { Circle().stroke(AppTheme.surface, lineWidth: 2.5) }
-                    .offset(x: x(row.minutes) - 7.5, y: barMid - 7.5)
             }
         }
-    }
-
-    private var limitText: String {
-        "Limit \(TimeText.compact(row.limit))"
-    }
-
-    /// "Limit 2h" above the limit line. Sits above the bar so it never covers
-    /// the average dot.
-    private var limitTag: some View {
-        Text(limitText)
-            .font(.caption2.weight(.heavy))
-            .foregroundStyle(AppTheme.background)
-            .lineLimit(1)
-            .fixedSize()
-            .padding(.horizontal, 8)
-            .frame(height: 17)
-            .background(AppTheme.primaryDeep, in: Capsule())
-    }
-
-    /// Centres the tag on the limit, sliding it inward near either edge so it
-    /// never gets cut off.
-    private func tagCenter(limitX: CGFloat, width: CGFloat) -> CGFloat {
-        let tagWidth = CGFloat(limitText.count) * 6.4 + 16
-        let half = tagWidth / 2
-        return min(max(limitX, half), max(width - half, half))
     }
 
     private var chipText: String {
@@ -833,29 +772,6 @@ private struct AverageRangeRow: View {
             .fixedSize()
     }
 
-    private var caption: Text {
-        var parts: [Text] = []
-        if row.daysCounted > 1 {
-            parts.append(Text("Days ranged ") + Text("\(TimeText.compact(row.lightest)) – \(TimeText.compact(row.busiest))").bold())
-        } else {
-            parts.append(Text(row.daysCounted == 1 ? "1 day so far" : "No days yet"))
-        }
-        if row.limit == 0 {
-            parts.append(Text("no limit set"))
-        }
-        if let previous = row.previousMinutes {
-            let change = row.minutes - previous
-            if change != 0 {
-                let arrow = change > 0 ? "↑" : "↓"
-                let tint = change > 0 ? AppTheme.dangerText : AppTheme.primary
-                parts.append(Text("\(arrow) \(TimeText.compact(abs(change)))").bold().foregroundStyle(tint) + Text(" \(comparisonLabel)"))
-            } else {
-                parts.append(Text("same as \(comparisonLabel.replacingOccurrences(of: "vs ", with: ""))"))
-            }
-        }
-        return parts.dropFirst().reduce(parts.first ?? Text("")) { $0 + Text(" · ") + $1 }
-    }
-
     private var accessibilityText: String {
         var text = "\(row.child.name), average \(TimeText.spoken(row.minutes)) a day"
         switch row.status {
@@ -863,35 +779,30 @@ private struct AverageRangeRow: View {
         case .close, .within: text += ", limit \(TimeText.spoken(row.limit))"
         case .noLimit: text += ", no limit set"
         }
-        if row.daysCounted > 1 {
-            text += ". Lightest day \(TimeText.spoken(row.lightest)), busiest \(TimeText.spoken(row.busiest))"
-        }
-        if let previous = row.previousMinutes, previous != row.minutes {
-            let change = row.minutes - previous
-            text += ". \(change > 0 ? "Up" : "Down") \(TimeText.spoken(abs(change))) \(comparisonLabel)"
-        }
         return text
     }
 }
 
-/// Key for the dot, range line and limit tick.
-private struct AverageRangeLegend: View {
-    var body: some View {
-        HStack(spacing: 12) {
-            item("average") { Circle().fill(AppTheme.textSecondary).frame(width: 8, height: 8) }
-            item("lightest – busiest") { Capsule().fill(AppTheme.textSecondary).frame(width: 14, height: 3) }
-            item("within limit") { Capsule().fill(AppTheme.primary.opacity(0.35)).frame(width: 14, height: 7) }
-        }
-        .font(.caption2)
-        .foregroundStyle(AppTheme.textSecondary)
-        .accessibilityHidden(true)
-    }
+/// Overtime begins exactly where the kid's own limit track ends. Diagonal white
+/// strokes keep the extension recognisable without relying on red alone.
+private struct StripedOvertimeBar: View {
+    let color: Color
 
-    private func item<Mark: View>(_ label: String, @ViewBuilder mark: () -> Mark) -> some View {
-        HStack(spacing: 4) {
-            mark()
-            Text(label).lineLimit(1)
+    var body: some View {
+        Canvas { context, size in
+            context.fill(Path(CGRect(origin: .zero, size: size)), with: .color(color))
+
+            var x = -size.height
+            while x < size.width + size.height {
+                var stripe = Path()
+                stripe.move(to: CGPoint(x: x, y: size.height))
+                stripe.addLine(to: CGPoint(x: x + size.height, y: 0))
+                context.stroke(stripe, with: .color(.white.opacity(0.38)), lineWidth: 4)
+                x += 10
+            }
         }
+        .clipShape(Capsule())
+        .accessibilityHidden(true)
     }
 }
 
