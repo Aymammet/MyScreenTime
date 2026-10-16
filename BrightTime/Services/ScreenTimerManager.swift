@@ -13,6 +13,12 @@ struct ActiveScreenTimer: Codable, Identifiable, Equatable {
     let endsAt: Date
     /// The child's color for the Live Activity (missing on timers saved by older builds).
     var childColorHex: UInt32?
+    /// Optional for compatibility with timers saved before per-timer controls existed.
+    var notifyWhenFinished: Bool?
+    var showOnLockScreen: Bool?
+
+    var shouldNotifyWhenFinished: Bool { notifyWhenFinished ?? true }
+    var shouldShowOnLockScreen: Bool { showOnLockScreen ?? true }
 
     var durationMinutes: Int {
         max(Int(endsAt.timeIntervalSince(startedAt) / 60), 1)
@@ -37,7 +43,14 @@ final class ScreenTimerManager: ObservableObject {
     }
 
     @discardableResult
-    func start(child: ChildProfile, device: Device, minutes: Int, now: Date = .now) -> ActiveScreenTimer {
+    func start(
+        child: ChildProfile,
+        device: Device,
+        minutes: Int,
+        notifyWhenFinished: Bool = true,
+        showOnLockScreen: Bool = true,
+        now: Date = .now
+    ) -> ActiveScreenTimer {
         let timer = ActiveScreenTimer(
             id: UUID(),
             childID: child.id,
@@ -46,14 +59,18 @@ final class ScreenTimerManager: ObservableObject {
             deviceName: device.name,
             startedAt: now,
             endsAt: now.addingTimeInterval(TimeInterval(minutes * 60)),
-            childColorHex: child.color.hex
+            childColorHex: child.color.hex,
+            notifyWhenFinished: notifyWhenFinished,
+            showOnLockScreen: showOnLockScreen
         )
         let replaced = timers.filter { $0.childID == child.id }.map(\.id.uuidString)
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: replaced)
         timers.removeAll { $0.childID == child.id }
         timers.append(timer)
         persist()
-        Task { await scheduleNotification(for: timer) }
+        if notifyWhenFinished {
+            Task { await scheduleNotification(for: timer) }
+        }
         return timer
     }
 

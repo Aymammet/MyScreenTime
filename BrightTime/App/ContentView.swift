@@ -144,9 +144,20 @@ struct ContentView: View {
                 if let childForTimer {
                     StartTimerView(
                         child: childForTimer,
-                        devices: activeDevices(for: childForTimer)
-                    ) { device, minutes in
-                        timerManager.start(child: childForTimer, device: device, minutes: minutes)
+                        devices: activeDevices(for: childForTimer),
+                        todaySummary: UsageAggregator.summary(
+                            on: .now,
+                            child: childForTimer,
+                            sessions: allUsageSessions
+                        )
+                    ) { device, minutes, notifyWhenFinished, showOnLockScreen in
+                        timerManager.start(
+                            child: childForTimer,
+                            device: device,
+                            minutes: minutes,
+                            notifyWhenFinished: notifyWhenFinished,
+                            showOnLockScreen: showOnLockScreen
+                        )
                     }
                 }
             }

@@ -6,7 +6,11 @@ import Foundation
 enum LiveActivityController {
     static func sync(with timers: [ActiveScreenTimer], now: Date = .now) {
         let activities = Activity<ScreenTimerAttributes>.activities
-        let liveTimerIDs = Set(timers.filter { $0.endsAt > now }.map(\.id))
+        let liveTimerIDs = Set(
+            timers
+                .filter { $0.endsAt > now && $0.shouldShowOnLockScreen }
+                .map(\.id)
+        )
 
         for activity in activities where !liveTimerIDs.contains(activity.attributes.timerID) {
             Task {
@@ -17,7 +21,10 @@ enum LiveActivityController {
         guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
         let shownTimerIDs = Set(activities.map(\.attributes.timerID))
 
-        for timer in timers where timer.endsAt > now && !shownTimerIDs.contains(timer.id) {
+        for timer in timers
+        where timer.endsAt > now
+            && timer.shouldShowOnLockScreen
+            && !shownTimerIDs.contains(timer.id) {
             let attributes = ScreenTimerAttributes(
                 timerID: timer.id,
                 childName: timer.childName,
