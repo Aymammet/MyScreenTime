@@ -27,6 +27,39 @@ struct ChildDetailView: View {
         Array(allUsageSessions.filter { $0.child?.id == child.id }.prefix(10))
     }
 
+    private var deviceHistoryDays: [KidDeviceHistoryDay] {
+        let calendar = AppCalendar.day
+        guard let threeMonthsAgo = calendar.date(byAdding: .month, value: -3, to: .now) else { return [] }
+        let childSessions = allUsageSessions.filter {
+            $0.child?.id == child.id && $0.startedAt >= threeMonthsAgo && $0.startedAt <= .now
+        }
+        let sessionsByDay = Dictionary(grouping: childSessions) {
+            calendar.startOfDay(for: $0.startedAt)
+        }
+
+        return sessionsByDay.map { day, sessions in
+            let sessionsByDevice = Dictionary(grouping: sessions) { session in
+                session.device?.id
+            }
+            let devices = sessionsByDevice.map { deviceID, deviceSessions in
+                let device = deviceSessions.first?.device
+                return KidDeviceHistoryItem(
+                    id: deviceID?.uuidString ?? "removed-device",
+                    deviceID: deviceID,
+                    systemImage: device?.kind.systemImage ?? "display",
+                    name: device?.name ?? "Removed device",
+                    minutes: deviceSessions.reduce(0) { $0 + $1.durationMinutes }
+                )
+            }
+            .sorted { lhs, rhs in
+                if lhs.minutes != rhs.minutes { return lhs.minutes > rhs.minutes }
+                return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+            }
+            return KidDeviceHistoryDay(date: day, devices: devices)
+        }
+        .sorted { $0.date > $1.date }
+    }
+
     private var todaySummary: DailyUsageSummary {
         UsageAggregator.summary(on: .now, child: child, sessions: allUsageSessions)
     }
@@ -119,6 +152,26 @@ struct ChildDetailView: View {
                             .buttonStyle(.bordered)
                         }
                     }
+                }
+            }
+
+            Section {
+                if deviceHistoryDays.isEmpty {
+                    Text("No device usage recorded in the last three months.")
+                        .font(.subheadline)
+                        .foregroundStyle(AppTheme.textSecondary)
+                } else {
+                    ForEach(deviceHistoryDays) { day in
+                        deviceHistoryRow(day)
+                    }
+                }
+            } header: {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("\(child.name)’s devices")
+                    Text("Last 3 months")
+                        .font(.caption)
+                        .textCase(nil)
+                        .foregroundStyle(AppTheme.textSecondary)
                 }
             }
 
@@ -313,6 +366,26 @@ struct ChildDetailView: View {
         .accessibilityHidden(true)
     }
 
+    private func deviceHistoryRow(_ day: KidDeviceHistoryDay) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(historyDateLabel(day.date))
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(AppTheme.primaryDeep)
+
+            ForEach(day.devices, id: \KidDeviceHistoryItem.id) { item in
+                KidDeviceHistoryItemRow(item: item)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func historyDateLabel(_ date: Date) -> String {
+        let calendar = AppCalendar.day
+        if calendar.isDateInToday(date) { return "Today" }
+        if calendar.isDateInYesterday(date) { return "Yesterday" }
+        return date.formatted(.dateTime.month(.abbreviated).day())
+    }
+
     private func deviceRow(_ device: Device) -> some View {
         let usedToday = UsageAggregator.totalMinutes(
             on: .now,
@@ -398,6 +471,44 @@ struct ChildDetailView: View {
         modelContext.delete(session)
         try? modelContext.save()
         sessionToDelete = nil
+    }
+}
+
+private struct KidDeviceHistoryDay: Identifiable {
+    let date: Date
+    let devices: [KidDeviceHistoryItem]
+    var id: Date { date }
+}
+
+private struct KidDeviceHistoryItem: Identifiable {
+    let id: String
+    let deviceID: UUID?
+    let systemImage: String
+    let name: String
+    let minutes: Int
+}
+
+private struct KidDeviceHistoryItemRow: View {
+    let item: KidDeviceHistoryItem
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: item.systemImage)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(AppTheme.primary)
+                .frame(width: 26, height: 26)
+                .background(AppTheme.surfaceMuted, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            Text(item.name)
+                .font(.subheadline)
+                .foregroundStyle(AppTheme.primaryDeep)
+
+            Spacer()
+
+            Text(TimeText.compact(item.minutes))
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(AppTheme.primaryDeep)
+        }
     }
 }
 

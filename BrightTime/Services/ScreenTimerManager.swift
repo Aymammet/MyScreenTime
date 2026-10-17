@@ -123,6 +123,20 @@ final class ScreenTimerManager: ObservableObject {
         stop(timer, children: children, devices: devices, context: context)
     }
 
+    /// Stops and records every running timer that uses a device before that
+    /// device is removed from active use.
+    func stopTimers(
+        forDeviceID deviceID: UUID,
+        children: [ChildProfile],
+        devices: [Device],
+        context: ModelContext
+    ) {
+        let matchingTimers = timers.filter { $0.deviceID == deviceID }
+        for timer in matchingTimers {
+            stop(timer, children: children, devices: devices, context: context)
+        }
+    }
+
     /// Drops every timer and its notification (used by Reset BrightTime).
     func clearAll() {
         let ids = timers.map(\.id.uuidString)

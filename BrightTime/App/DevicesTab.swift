@@ -222,9 +222,13 @@ struct DevicesTab: View {
 
 /// Everything about one device: today vs averages, and who used it this week.
 struct DeviceDetailView: View {
+    @Environment(\.dismiss) private var dismiss
+
     let device: Device
     let children: [ChildProfile]
     let sessions: [UsageSession]
+
+    @State private var isEditingDevice = false
 
     var body: some View {
         let color = AppTheme.color(forDeviceID: device.id)
@@ -300,6 +304,20 @@ struct DeviceDetailView: View {
         .background(AppTheme.background.ignoresSafeArea())
         .navigationTitle(device.name)
         .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button("Edit") {
+                    isEditingDevice = true
+                }
+                .accessibilityIdentifier("edit-device-button")
+            }
+        }
+        .sheet(isPresented: $isEditingDevice) {
+            DeviceFormView(children: children, device: device)
+        }
+        .onChange(of: device.isActive) { _, isActive in
+            if !isActive { dismiss() }
+        }
         .accessibilityIdentifier("device-analysis-card-\(device.id.uuidString)")
     }
 

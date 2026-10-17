@@ -9,6 +9,8 @@ struct DeviceFormView: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var timerManager: ScreenTimerManager
+    @Query private var allChildren: [ChildProfile]
     @Query private var allDevices: [Device]
 
     let children: [ChildProfile]
@@ -18,6 +20,7 @@ struct DeviceFormView: View {
     @State private var kind: Device.Kind
     @State private var ownerSelection: OwnerSelection
     @State private var saveErrorMessage: String?
+    @State private var isConfirmingRemoval = false
 
     init(child: ChildProfile, device: Device? = nil) {
         self.init(children: [child], device: device, preferredChild: child)
@@ -112,6 +115,20 @@ struct DeviceFormView: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                 }
+
+                if device != nil {
+                    Section {
+                        Button(role: .destructive) {
+                            isConfirmingRemoval = true
+                        } label: {
+                            Label("Remove Device", systemImage: "trash")
+                                .frame(maxWidth: .infinity, alignment: .center)
+                        }
+                        .accessibilityIdentifier("remove-device-button")
+                    } footer: {
+                        Text("Past screen-time history will be kept.")
+                    }
+                }
             }
             .navigationTitle(device == nil ? "Add Device" : "Edit Device")
             .navigationBarTitleDisplayMode(.inline)
@@ -143,6 +160,18 @@ struct DeviceFormView: View {
             } message: {
                 Text(saveErrorMessage ?? "Please try again.")
             }
+            .confirmationDialog(
+                "Remove this device?",
+                isPresented: $isConfirmingRemoval,
+                titleVisibility: .visible
+            ) {
+                Button("Remove Device", role: .destructive) {
+                    removeDevice()
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("The device will no longer be available for timers or new usage. Its past screen-time history will be kept.")
+            }
         }
     }
 
@@ -169,6 +198,27 @@ struct DeviceFormView: View {
                 )
             )
         }
+
+        do {
+            try modelContext.save()
+            dismiss()
+        } catch {
+            modelContext.rollback()
+            saveErrorMessage = error.localizedDescription
+        }
+    }
+
+    private func removeDevice() {
+        guard let device else { return }
+
+        timerManager.stopTimers(
+            forDeviceID: device.id,
+            children: allChildren,
+            devices: allDevices,
+            context: modelContext
+        )
+        device.isActive = false
+        device.updatedAt = .now
 
         do {
             try modelContext.save()
